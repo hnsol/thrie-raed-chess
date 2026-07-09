@@ -50,6 +50,18 @@ def pause(msg="  ─ キーで次へ ─"):
     print(f"{DIM}{msg}{RESET}")
     read_key()
 
+
+def clear_screen():
+    """対話端末だけ固定画面風に再描画する。"""
+    if sys.stdin.isatty():
+        print("\033[2J\033[H", end="")
+
+
+def show_title():
+    print("=== 3択チェス ===  あなた=White(明るい駒)")
+    print(f"{DIM}j / k / l で選ぶ。色の意味は選んだ後に開示。{RESET}")
+    print()
+
 # ---- 設定 --------------------------------------------------------------
 # Stockfish の場所を自動探索(PATH → よくある場所)。見つからなければ手動指定。
 def find_stockfish():
@@ -140,15 +152,21 @@ def evaluate_all_moves(engine, board):
 
 def pick_three(evaluated):
     """
-    できるだけ 緑・黄・赤 を1つずつ。足りない色は他から補充。
-    3手未満の局面ならある分だけ。
+    最善手を必ず含め、できるだけ 黄・赤 も1つずつ。
+    足りない色は他から補充。3手未満の局面ならある分だけ。
     """
+    if not evaluated:
+        return []
+
+    best = evaluated[0]
     buckets = {"green": [], "yellow": [], "red": []}
     for item in evaluated:
+        if item == best:
+            continue
         buckets[item[2]].append(item)
 
-    chosen = []
-    for color in ("green", "yellow", "red"):
+    chosen = [best]
+    for color in ("yellow", "red"):
         if buckets[color]:
             chosen.append(random.choice(buckets[color]))
 
@@ -245,6 +263,14 @@ def show_board(board):
     print()
 
 
+def last_move_san(board):
+    if not board.move_stack:
+        return None
+    tmp = board.copy()
+    move = tmp.pop()
+    return tmp.san(move)
+
+
 def render_annotated_board(board, choices):
     """選択肢(識別色)＋直前の相手の手(淡黄)を同じ盤に。競合は選択肢優先。"""
     last = board.peek() if board.move_stack else None
@@ -256,7 +282,8 @@ def render_annotated_board(board, choices):
         ov[move.to_square] = (bg, KEYS[i], 1, HL_FG)        # 行き先=キー
     _render_board(board, ov)
     if last:
-        print(f"  {DIM}淡黄=相手の直前手{RESET}")
+        san = last_move_san(board)
+        print(f"  {DIM}直近CPU手: {san} / 淡黄=出発点と到着点{RESET}")
     print()
 
 
@@ -313,6 +340,9 @@ def human_turn(engine, board):
     evaluated = evaluate_all_moves(engine, board)
     choices = pick_three(evaluated)
 
+    clear_screen()
+    if sys.stdin.isatty():
+        show_title()
     render_annotated_board(board, choices)
     print("  どれを指す？（色付き升=候補の駒と行き先）")
     for i, item in enumerate(choices):
@@ -335,19 +365,27 @@ def human_turn(engine, board):
         if key in valid:
             sel = valid.index(key)
 
-    print("\n  --- 開示 ---")
-    for i, item in enumerate(choices):
-        print(render_choice(i, board, item, reveal=True, chosen_idx=sel))
-
     chosen = choices[sel]
     move, loss, color = chosen
     san = board.san(move)
     _, label = LABELS[color]
+    revealed = [
+        render_choice(i, board, item, reveal=True, chosen_idx=sel)
+        for i, item in enumerate(choices)
+    ]
     board.push(move)
 
-    print(f"\n  あなたの手: {san}  {label.strip()}(差 {loss})")
+    clear_screen()
+    if sys.stdin.isatty():
+        show_title()
     show_result_board(board, choices, sel)
-    pause("  ─ 確認したらキーで相手の番へ ─")
+    print(f"  あなたの手: {san}  {label.strip()}(差 {loss})")
+    print()
+    print("  --- 評価 ---")
+    for line in revealed:
+        print(line)
+    print()
+    pause("  ─ 確認したらキーでCPUの番へ ─")
 
     return "ok"
 
@@ -359,10 +397,7 @@ def cpu_turn(engine, board):
         options={"Skill Level": CPU_SKILL},
     )
     move = result.move
-    san = board.san(move)
     board.push(move)
-    print(f"\n  CPUの手: {san}")
-    show_board_move(board, move, who="CPUの手")
 
 
 def announce_result(board):
@@ -391,8 +426,7 @@ def main():
 
     engine = chess.engine.SimpleEngine.popen_uci(sf)
     board = chess.Board()
-    print("=== 3択チェス ===  あなた=White(明るい駒)")
-    print(f"{DIM}j / k / l で選ぶ。色の意味は選んだ後に開示。{RESET}")
+    show_title()
 
     try:
         while not board.is_game_over():
