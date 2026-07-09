@@ -18,9 +18,11 @@ import os
 import sys
 import random
 import shutil
+import subprocess
 import termios
 import tty
 import chess
+import chess.pgn
 import chess.engine
 
 # ---- 単キー入力 --------------------------------------------------------
@@ -124,13 +126,13 @@ BOARD_TEXT_W = 2 + 8 * SQUARE_W
 def movement_help_lines():
     return [
         "動き",
-        "Pawn   前1 初手2",
-        "       取る=斜め",
-        "Knight L字",
-        "Bishop 斜め",
-        "Rook   縦横",
-        "Queen  縦横斜め",
-        "King   周囲1",
+        "♟ Pawn   前1 初手2",
+        "         取る=斜め",
+        "♞ Knight L字",
+        "♝ Bishop 斜め",
+        "♜ Rook   縦横",
+        "♛ Queen  縦横斜め",
+        "♚ King   周囲1",
     ]
 
 
@@ -366,6 +368,50 @@ def render_choice(idx, board, item, reveal, chosen_idx=None):
     return f"  {keytag} {col}{label}{RESET} {san:6} {tail}{factstr}{mark}"
 
 
+def game_pgn(board, result="*", termination="Unfinished"):
+    game = chess.pgn.Game.from_board(board)
+    game.headers["Event"] = "3-choice chess practice"
+    game.headers["White"] = "Human"
+    game.headers["Black"] = "CPU"
+    game.headers["Result"] = result
+    game.headers["Termination"] = termination
+    return str(game)
+
+
+def game_review_text(board, result="*", termination="Unfinished"):
+    pgn = game_pgn(board, result=result, termination=termination)
+    return (
+        "この棋譜を見て、初心者向けに改善点を教えてください。\n"
+        "特に、悪手・見落とし・駒の動かし方の理解不足がありそうな場面を、"
+        "短く具体的に指摘してください。\n\n"
+        f"{pgn}"
+    )
+
+
+def copy_to_clipboard(text):
+    if not shutil.which("pbcopy"):
+        return False
+    try:
+        subprocess.run(["pbcopy"], input=text, text=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    return True
+
+
+def show_game_export(board, result="*", termination="Unfinished"):
+    text = game_review_text(board, result=result, termination=termination)
+    copied = copy_to_clipboard(text)
+    print("\n==============================")
+    print("  棋譜と依頼文")
+    print("==============================")
+    print(text)
+    print("==============================")
+    if copied:
+        print("  クリップボードにコピーしました。")
+    else:
+        print("  クリップボードコピーはできませんでした。")
+
+
 # ---- メインループ ------------------------------------------------------
 def human_turn(engine, board):
     evaluated = evaluate_all_moves(engine, board)
@@ -387,12 +433,14 @@ def human_turn(engine, board):
         print(f"  {DIM}(この局面では {' / '.join(missing)} は出せませんでした){RESET}")
 
     valid = KEYS[:len(choices)]
-    print(f"  {DIM}{' / '.join(valid)} で選択、q で終了{RESET}")
+    print(f"  {DIM}{' / '.join(valid)} で選択、r で投了、q で終了{RESET}")
     sel = None
     while sel is None:
         key = read_key()
         if key == "q":
             return "quit"
+        if key == "r":
+            return "resign"
         if key in valid:
             sel = valid.index(key)
 
@@ -460,17 +508,30 @@ def main():
     show_title()
 
     try:
+        result = "*"
+        termination = "Unfinished"
         while not board.is_game_over():
             if board.turn == chess.WHITE:
                 # 人間の手番は注釈付き盤面を human_turn 内で描く
-                if human_turn(engine, board) == "quit":
+                turn_result = human_turn(engine, board)
+                if turn_result == "quit":
+                    result = "*"
+                    termination = "Abandoned"
                     print("\n中断しました。")
+                    break
+                if turn_result == "resign":
+                    result = "0-1"
+                    termination = "White resigned"
+                    print("\n投了しました。")
                     break
             else:
                 cpu_turn(engine, board)
         else:
+            result = board.result(claim_draw=True)
+            termination = "Game over"
             show_board(board)
             announce_result(board)
+        show_game_export(board, result=result, termination=termination)
     finally:
         engine.quit()
 

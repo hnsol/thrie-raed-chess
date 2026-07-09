@@ -1,4 +1,25 @@
-from learn_chess import movement_help_lines, pick_three, render_board_lines
+from learn_chess import (
+    game_review_text,
+    movement_help_lines,
+    pick_three,
+    render_board_lines,
+)
+
+
+def test_game_review_text_contains_pgn_and_llm_request():
+    import chess
+
+    board = chess.Board()
+    board.push_san("e4")
+    board.push_san("e5")
+
+    text = game_review_text(board, result="0-1", termination="White resigned")
+
+    assert "[Result \"0-1\"]" in text
+    assert "[Termination \"White resigned\"]" in text
+    assert "1. e4 e5 0-1" in text
+    assert "この棋譜を見て" in text
+    assert "改善点" in text
 
 
 def test_render_board_lines_includes_movement_help_panel():
@@ -8,9 +29,9 @@ def test_render_board_lines_includes_movement_help_panel():
     text = "\n".join(lines)
 
     assert "動き" in text
-    assert "Pawn" in text
+    assert "♟ Pawn" in text
     assert "取る=斜め" in text
-    assert "Knight" in text
+    assert "♞ Knight" in text
     assert "L字" in text
 
 
