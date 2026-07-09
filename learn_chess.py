@@ -118,6 +118,21 @@ IDENTITY = [
     ("\033[48;5;75m",  HL_FG),     # l: 青
 ]
 
+BOARD_TEXT_W = 2 + 8 * SQUARE_W
+
+
+def movement_help_lines():
+    return [
+        "動き",
+        "Pawn   前1 初手2",
+        "       取る=斜め",
+        "Knight L字",
+        "Bishop 斜め",
+        "Rook   縦横",
+        "Queen  縦横斜め",
+        "King   周囲1",
+    ]
+
 
 # ---- 評価まわり --------------------------------------------------------
 def classify(loss):
@@ -229,9 +244,9 @@ def _cell(bg, content, cw, fg):
     return f"{bg}{fg}{_pad(content, cw)}{RESET}"
 
 
-def _render_board(board, overrides):
+def render_board_lines(board, overrides):
     """overrides: square -> (bg, content, cw, fg)。無い升はチェッカー+駒。"""
-    print()
+    lines = []
     for rank in range(7, -1, -1):
         row = f"{rank+1} "
         for file in range(8):
@@ -243,8 +258,24 @@ def _render_board(board, overrides):
                 bg = LIGHT_SQ if is_light else DARK_SQ
                 content, cw, fg = _piece_content(board.piece_at(sq))
             row += _cell(bg, content, cw, fg)
-        print(row)
-    print("  " + "".join(_pad(c, 1) for c in "abcdefgh"))
+        lines.append(row)
+    lines.append("  " + "".join(_pad(c, 1) for c in "abcdefgh"))
+
+    help_lines = movement_help_lines()
+    merged = []
+    for i, line in enumerate(lines):
+        help_text = help_lines[i] if i < len(help_lines) else ""
+        if help_text:
+            merged.append(f"{line:<{BOARD_TEXT_W}}  {DIM}{help_text}{RESET}")
+        else:
+            merged.append(line)
+    return merged
+
+
+def _render_board(board, overrides):
+    print()
+    for line in render_board_lines(board, overrides):
+        print(line)
 
 
 def _lastmove_overrides(board, move):

@@ -1,4 +1,21 @@
-from learn_chess import pick_three
+from learn_chess import movement_help_lines, pick_three, render_board_lines
+
+
+def test_render_board_lines_includes_movement_help_panel():
+    import chess
+
+    lines = render_board_lines(chess.Board(), {})
+    text = "\n".join(lines)
+
+    assert "動き" in text
+    assert "Pawn" in text
+    assert "取る=斜め" in text
+    assert "Knight" in text
+    assert "L字" in text
+
+
+def test_movement_help_lines_are_short_enough_for_side_panel():
+    assert all(len(line) <= 22 for line in movement_help_lines())
 
 
 def test_result_screen_keeps_board_before_move_summary(monkeypatch, capsys):
