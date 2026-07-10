@@ -51,6 +51,13 @@ from movesense.puzzles import (
 )
 from movesense.stats import BattleStats, movement_help_lines
 from movesense.review import copy_to_clipboard, game_pgn, game_review_text
+from movesense.boardmodel import (
+    CellRole,
+    choice_model,
+    lastmove_model,
+    puzzle_result_model,
+    result_model,
+)
 
 # ---- 単キー入力 --------------------------------------------------------
 # ターミナルを一時的に cbreak モードにして、Enterなしで1キーを拾う。
@@ -199,24 +206,30 @@ def _render_board(board, overrides, panel_lines=None):
         print(line)
 
 
+def _cell_ansi(cell):
+    """boardmodel.Cell -> (bg, content, cw, fg) の ANSI 表示タプル。"""
+    if cell.role == CellRole.LASTMOVE:
+        bg = LASTMOVE
+    else:
+        bg, _ = IDENTITY[cell.choice_index]
+    if cell.show_piece and cell.piece is not None:
+        content, cw, fg = _piece_content(cell.piece)
+    else:
+        content, cw, fg = "", 0, ""
+    return bg, content, cw, fg
+
+
+def _overrides_from_model(model):
+    return {sq: _cell_ansi(cell) for sq, cell in model.items()}
+
+
 def _lastmove_overrides(board, move):
     """直前の1手を淡黄で。出発点=空き、着地点=動いた駒。"""
-    content, cw, fg = _piece_content(board.piece_at(move.to_square))
-    return {
-        move.from_square: (LASTMOVE, "", 0, ""),
-        move.to_square:   (LASTMOVE, content, cw, fg),
-    }
+    return _overrides_from_model(lastmove_model(board, move))
 
 
 def _choice_overrides(board, choices):
-    ov = {}
-    for i, (move, _, _) in enumerate(choices):
-        bg, _ = IDENTITY[i]
-        from_content, from_cw, from_fg = _piece_content(board.piece_at(move.from_square))
-        to_content, to_cw, to_fg = _piece_content(board.piece_at(move.to_square))
-        ov[move.from_square] = (bg, from_content, from_cw, from_fg)
-        ov[move.to_square] = (bg, to_content, to_cw, to_fg)
-    return ov
+    return _overrides_from_model(choice_model(board, choices))
 
 
 def show_board(board, panel_lines=None):
@@ -268,23 +281,7 @@ def show_result_board(board, choices, sel, panel_lines=None):
     """指した後の盤(board は push 済み)。
     選んだ手はその識別色で単色表示、選ばなかった候補も色付きで併記。
     相手の手(淡黄)とは別表現にする。"""
-    ov = {}
-    # 選ばなかった候補: 出発点の駒 + 行き先キー(識別色)
-    for i, (mv, _, _) in enumerate(choices):
-        if i == sel:
-            continue
-        bg, _ = IDENTITY[i]
-        content, cw, fg = _piece_content(board.piece_at(mv.from_square))
-        ov[mv.from_square] = (bg, content, cw, fg)
-        to_content, to_cw, to_fg = _piece_content(board.piece_at(mv.to_square))
-        ov[mv.to_square] = (bg, to_content, to_cw, to_fg)
-    # 選んだ手: 識別色で単色(出発点=空き / 着地点=動いた駒)。上書き優先。
-    mv = choices[sel][0]
-    bg, _ = IDENTITY[sel]
-    content, cw, fg = _piece_content(board.piece_at(mv.to_square))
-    ov[mv.from_square] = (bg, "", 0, "")
-    ov[mv.to_square] = (bg, content, cw, fg)
-
+    ov = _overrides_from_model(result_model(board, choices, sel))
     _render_board(board, ov, panel_lines=panel_lines)
     others = "・".join(KEYS[i] for i in range(len(choices)) if i != sel)
     print(f"  {DIM}{KEYS[sel]}の色=あなたの手 / {others}=選ばなかった候補{RESET}")
@@ -550,10 +547,7 @@ def puzzle_result_menu(status, puzzle, final_result=None):
         last = final_board.peek() if final_board.move_stack else None
         overrides = {}
         if last:
-            bg, _ = IDENTITY[final_choice_idx]
-            content, cw, fg = _piece_content(final_board.piece_at(last.to_square))
-            overrides[last.from_square] = (bg, "", 0, "")
-            overrides[last.to_square] = (bg, content, cw, fg)
+            overrides = _overrides_from_model(puzzle_result_model(final_board, last, final_choice_idx))
         _render_board(final_board, overrides)
     print()
     if status == "success":
