@@ -179,6 +179,15 @@ def test_puzzle_session_final_correct_choice_reaches_success():
     assert session.final_choice_idx == idx
 
 
+def test_puzzle_session_abandon_sets_aborted_phase():
+    puzzle = next(p for p in PUZZLES if p["mate_in"] == 2)
+    session = PuzzleSession(puzzle)
+
+    session.abandon()
+
+    assert session.phase is PuzzlePhase.ABORTED
+
+
 def test_puzzle_session_wrong_choice_goes_to_miss():
     puzzle = next(p for p in PUZZLES if p["mate_in"] == 2)
     session = PuzzleSession(puzzle)

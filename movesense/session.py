@@ -132,6 +132,7 @@ class PuzzlePhase(Enum):
     SUCCESS = auto()
     MISS = auto()
     FAIL = auto()
+    ABORTED = auto()
 
 
 class PuzzleSession:
@@ -154,6 +155,9 @@ class PuzzleSession:
     def focus(self, idx):
         if self.phase == PuzzlePhase.CHOOSING and 0 <= idx < len(self.choices):
             self.focused_idx = idx
+
+    def abandon(self):
+        self.phase = PuzzlePhase.ABORTED
 
     def apply_choice(self, idx):
         """idx の手を確定。'correct' | 'miss' | 'fail' を返す。"""

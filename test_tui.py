@@ -4,12 +4,23 @@ import types
 import chess
 import pytest
 from textual.app import App, ComposeResult
+from textual.widgets import Input
 
 from movesense.boardmodel import choice_model, lastmove_model
-from movesense.session import BattlePhase
+from movesense.config import KEYS
+from movesense.puzzles import PUZZLES
+from movesense.session import BattlePhase, PuzzlePhase
 from movesense.stats import BattleStats
 from movesense.tui.app import MoveSenseApp
-from movesense.tui.screens import BattleScreen
+from movesense.tui.screens import (
+    BattleScreen,
+    MenuScreen,
+    PuzzleDifficultyScreen,
+    PuzzleNumberScreen,
+    PuzzleResultScreen,
+    PuzzleScreen,
+    PuzzleSelectScreen,
+)
 from movesense.tui.widgets import BoardWidget, SidePanel, _square_visual
 
 
@@ -352,3 +363,204 @@ async def test_missing_stockfish_shows_error_status(monkeypatch):
         await _wait_until(
             lambda: "Stockfish" in str(app.screen.query_one("#status-bar").render())
         )
+
+
+@pytest.mark.asyncio
+async def test_menu_k_opens_puzzle_select_screen():
+    app = MoveSenseApp()
+    async with app.run_test() as pilot:
+        await pilot.press("k")
+        await pilot.pause()
+        assert isinstance(app.screen, PuzzleSelectScreen)
+
+
+@pytest.mark.asyncio
+async def test_puzzle_select_random_pushes_puzzle_screen_with_visible_choices():
+    app = MoveSenseApp()
+    async with app.run_test() as pilot:
+        await pilot.press("k")
+        await pilot.pause()
+        await pilot.press("j")
+        await pilot.pause()
+
+        assert isinstance(app.screen, PuzzleScreen)
+        body = str(app.screen.query_one("#choice-list").render())
+        assert "j)" in body and "k)" in body
+        # パズルは評価を開示しない: 色バッジは出ない
+        assert "🟢" not in body and "🟡" not in body and "🔴" not in body
+
+
+@pytest.mark.asyncio
+async def test_puzzle_select_difficulty_picks_requested_mate_in():
+    app = MoveSenseApp()
+    async with app.run_test() as pilot:
+        await pilot.press("k")  # メニュー -> パズル選択
+        await pilot.pause()
+        await pilot.press("k")  # 難易度指定
+        await pilot.pause()
+        assert isinstance(app.screen, PuzzleDifficultyScreen)
+
+        await pilot.press("l")  # mate in 4
+        await pilot.pause()
+
+        assert isinstance(app.screen, PuzzleScreen)
+        assert app.screen.puzzle["mate_in"] == 4
+
+
+@pytest.mark.asyncio
+async def test_puzzle_select_by_number_finds_specific_puzzle():
+    app = MoveSenseApp()
+    async with app.run_test() as pilot:
+        await pilot.press("k")
+        await pilot.pause()
+        await pilot.press("l")  # 番号指定
+        await pilot.pause()
+        assert isinstance(app.screen, PuzzleNumberScreen)
+
+        target = next(p for p in PUZZLES if p["mate_in"] == 2)
+        app.screen.query_one("#puzzle-number-input", Input).value = target["id"]
+        await pilot.press("enter")
+        await pilot.pause()
+
+        assert isinstance(app.screen, PuzzleScreen)
+        assert app.screen.puzzle["id"] == target["id"]
+
+
+@pytest.mark.asyncio
+async def test_puzzle_number_screen_shows_error_for_unknown_id():
+    app = MoveSenseApp()
+    async with app.run_test() as pilot:
+        await pilot.press("k")
+        await pilot.pause()
+        await pilot.press("l")
+        await pilot.pause()
+
+        app.screen.query_one("#puzzle-number-input", Input).value = "doesnotexist"
+        await pilot.press("enter")
+        await pilot.pause()
+
+        assert isinstance(app.screen, PuzzleNumberScreen)
+        assert "見つかりません" in str(app.screen.query_one("#puzzle-number-error").render())
+
+
+@pytest.mark.asyncio
+async def test_puzzle_screen_correct_choices_advance_through_reply_to_success():
+    puzzle = next(p for p in PUZZLES if p["mate_in"] == 2)
+    screen = PuzzleScreen(puzzle)
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+
+        for step_idx in (0, 2):
+            correct = chess.Move.from_uci(puzzle["solution"][step_idx])
+            idx = next(i for i, (mv, _, _) in enumerate(screen.session.choices) if mv == correct)
+            key = KEYS[idx]
+            await pilot.press(key)
+            await pilot.pause()
+            await pilot.press(key)
+            await pilot.pause()
+
+        assert isinstance(app.screen, PuzzleResultScreen)
+        assert app.screen.session.phase == PuzzlePhase.SUCCESS
+        body = str(app.screen.query_one("#result-message").render())
+        assert "成功" in body
+
+
+@pytest.mark.asyncio
+async def test_puzzle_screen_wrong_choice_reaches_miss_result():
+    puzzle = next(p for p in PUZZLES if p["mate_in"] == 2)
+    screen = PuzzleScreen(puzzle)
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        correct = chess.Move.from_uci(puzzle["solution"][0])
+        wrong_idx = next(i for i, (mv, _, _) in enumerate(screen.session.choices) if mv != correct)
+        key = KEYS[wrong_idx]
+
+        await pilot.press(key)
+        await pilot.pause()
+        await pilot.press(key)
+        await pilot.pause()
+
+        assert isinstance(app.screen, PuzzleResultScreen)
+        assert app.screen.session.phase == PuzzlePhase.MISS
+        assert "失敗" in str(app.screen.query_one("#result-message").render())
+
+
+@pytest.mark.asyncio
+async def test_puzzle_screen_q_aborts_to_result_screen():
+    puzzle = next(p for p in PUZZLES if p["mate_in"] == 2)
+    screen = PuzzleScreen(puzzle)
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.press("q")
+        await pilot.pause()
+
+        assert isinstance(app.screen, PuzzleResultScreen)
+        assert app.screen.session.phase == PuzzlePhase.ABORTED
+
+
+@pytest.mark.asyncio
+async def test_puzzle_result_retry_creates_fresh_puzzle_screen():
+    puzzle = next(p for p in PUZZLES if p["mate_in"] == 2)
+    screen = PuzzleScreen(puzzle)
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.press("q")  # abandon -> result
+        await pilot.pause()
+        await pilot.press("h")  # リトライ
+        await pilot.pause()
+
+        assert isinstance(app.screen, PuzzleScreen)
+        assert app.screen.session.phase == PuzzlePhase.CHOOSING
+        assert app.screen.puzzle["id"] == puzzle["id"]
+
+
+@pytest.mark.asyncio
+async def test_puzzle_result_another_returns_to_puzzle_select_screen():
+    app = MoveSenseApp()
+    async with app.run_test() as pilot:
+        await pilot.press("k")  # Menu -> PuzzleSelect
+        await pilot.pause()
+        await pilot.press("j")  # PuzzleSelect -> PuzzleScreen(random)
+        await pilot.pause()
+        await pilot.press("q")  # abandon -> Result
+        await pilot.pause()
+        await pilot.press("j")  # 別の問題
+        await pilot.pause()
+
+        assert isinstance(app.screen, PuzzleSelectScreen)
+
+
+@pytest.mark.asyncio
+async def test_puzzle_result_to_menu_returns_to_menu_screen():
+    app = MoveSenseApp()
+    async with app.run_test() as pilot:
+        await pilot.press("k")
+        await pilot.pause()
+        await pilot.press("j")
+        await pilot.pause()
+        await pilot.press("q")  # abandon -> result
+        await pilot.pause()
+        await pilot.press("k")  # メニューへ戻る
+        await pilot.pause()
+
+        assert isinstance(app.screen, MenuScreen)
+
+
+@pytest.mark.asyncio
+async def test_puzzle_result_quit_exits_app():
+    app = MoveSenseApp()
+    async with app.run_test() as pilot:
+        await pilot.press("k")
+        await pilot.pause()
+        await pilot.press("j")
+        await pilot.pause()
+        await pilot.press("q")  # abandon -> result
+        await pilot.pause()
+        await pilot.press("q")  # 終了
+        await pilot.pause()
+
+        assert app.is_running is False

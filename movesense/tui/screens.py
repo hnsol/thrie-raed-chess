@@ -1,13 +1,28 @@
+import random
+
 import chess
 import chess.engine
 from textual.containers import Horizontal
 from textual.screen import ModalScreen, Screen
-from textual.widgets import Footer, Header, Static
+from textual.widgets import Footer, Header, Input, Static
 
-from movesense.boardmodel import choice_model, lastmove_model, piece_glyph, result_model
+from movesense.boardmodel import (
+    choice_model,
+    lastmove_model,
+    piece_glyph,
+    puzzle_result_model,
+    result_model,
+)
 from movesense.config import APP_NAME, KEYS, find_stockfish
+from movesense.puzzles import PUZZLES, find_puzzle_by_id, get_puzzles_by_difficulty, mate_label
 from movesense.review import copy_to_clipboard, game_review_text
-from movesense.session import BattlePhase, BattleSession, outcome_message
+from movesense.session import (
+    BattlePhase,
+    BattleSession,
+    PuzzlePhase,
+    PuzzleSession,
+    outcome_message,
+)
 
 from .widgets import BoardWidget, SidePanel
 
@@ -44,7 +59,7 @@ class MenuScreen(Screen):
         self.app.push_screen(BattleScreen())
 
     def action_puzzle(self):
-        pass  # Step 8 で PuzzleSelectScreen に差し替え
+        self.app.push_screen(PuzzleSelectScreen())
 
     def action_quit(self):
         self.app.exit()
@@ -292,3 +307,227 @@ class ExportScreen(ModalScreen):
     def action_close(self):
         self.app.pop_screen()  # ExportScreen
         self.app.pop_screen()  # BattleScreen
+
+
+class PuzzleSelectScreen(Screen):
+    """詰めチェス選択メニュー。ランダム/難易度指定/番号指定。"""
+
+    BINDINGS = [
+        ("j", "random_puzzle", "ランダム"),
+        ("k", "by_difficulty", "難易度指定"),
+        ("l", "by_number", "問題番号指定"),
+        ("q", "back", "戻る"),
+    ]
+
+    def compose(self):
+        yield Header()
+        yield Static(
+            "詰めチェス\n\n"
+            "j  ランダム\n"
+            "k  難易度指定\n"
+            "l  問題番号指定\n"
+            "q  戻る",
+            id="puzzle-select-body",
+        )
+        yield Footer()
+
+    def action_random_puzzle(self):
+        self.app.push_screen(PuzzleScreen(random.choice(PUZZLES)))
+
+    def action_by_difficulty(self):
+        self.app.push_screen(PuzzleDifficultyScreen())
+
+    def action_by_number(self):
+        self.app.push_screen(PuzzleNumberScreen())
+
+    def action_back(self):
+        self.app.pop_screen()
+
+
+class PuzzleDifficultyScreen(Screen):
+    BINDINGS = [
+        ("j", "pick(2)", "mate in 2"),
+        ("k", "pick(3)", "mate in 3"),
+        ("l", "pick(4)", "mate in 4"),
+        ("q", "back", "戻る"),
+    ]
+
+    def compose(self):
+        yield Header()
+        yield Static(
+            "難易度\n\n"
+            "j  mate in 2\n"
+            "k  mate in 3\n"
+            "l  mate in 4\n"
+            "q  戻る",
+            id="puzzle-difficulty-body",
+        )
+        yield Footer()
+
+    def action_pick(self, mate_in):
+        puzzle = random.choice(get_puzzles_by_difficulty(mate_in))
+        self.app.pop_screen()
+        self.app.push_screen(PuzzleScreen(puzzle))
+
+    def action_back(self):
+        self.app.pop_screen()
+
+
+class PuzzleNumberScreen(Screen):
+    BINDINGS = [("escape", "back", "戻る")]
+
+    def compose(self):
+        yield Header()
+        counts = {n: len(get_puzzles_by_difficulty(n)) for n in (2, 3, 4)}
+        yield Static(
+            "問題番号\n\n"
+            f"mate in 2: {counts[2]}問 / mate in 3: {counts[3]}問 / mate in 4: {counts[4]}問\n"
+            f"例: {PUZZLES[0]['id']}",
+            id="puzzle-number-info",
+        )
+        yield Input(placeholder="番号を入力", id="puzzle-number-input")
+        yield Static(id="puzzle-number-error")
+        yield Footer()
+
+    def on_input_submitted(self, event):
+        puzzle = find_puzzle_by_id(event.value.strip())
+        if puzzle is None:
+            self.query_one("#puzzle-number-error", Static).update("見つかりません。")
+            return
+        self.app.pop_screen()
+        self.app.push_screen(PuzzleScreen(puzzle))
+
+    def action_back(self):
+        self.app.pop_screen()
+
+
+def _puzzle_choice_line(idx, board, item, focused):
+    move, _loss, _color = item
+    san = board.san(move)
+    side = "White" if board.turn == chess.WHITE else "Black"
+    frm = chess.square_name(move.from_square)
+    to = chess.square_name(move.to_square)
+    marker = "→" if focused else " "
+    return f"{marker} {KEYS[idx]}) {side}: {san} ({frm}→{to})"
+
+
+class PuzzleScreen(Screen):
+    """詰めチェス。BattleScreenと同じフォーカス→確定の2段階入力・拡大盤を共用するが、
+    評価は開示しない(正解/ミスのみ)。"""
+
+    BINDINGS = [
+        ("j", "pick('j')", "選ぶ"),
+        ("k", "pick('k')", "選ぶ"),
+        ("l", "pick('l')", "選ぶ"),
+        ("q", "abandon", "中断"),
+    ]
+
+    def __init__(self, puzzle, **kwargs):
+        super().__init__(**kwargs)
+        self.puzzle = puzzle
+        self.session = PuzzleSession(puzzle)
+
+    def compose(self):
+        yield Header()
+        yield BoardWidget(id="board")
+        yield Static(id="status-bar")
+        yield Static(id="choice-list")
+        yield Footer()
+
+    def on_mount(self):
+        self._refresh_view()
+
+    def _refresh_view(self):
+        model = choice_model(
+            self.session.board, self.session.choices, focused_index=self.session.focused_idx
+        )
+        self.query_one("#board", BoardWidget).update_board(self.session.board, model)
+        lines = [
+            _puzzle_choice_line(i, self.session.board, item, focused=(self.session.focused_idx == i))
+            for i, item in enumerate(self.session.choices)
+        ]
+        self.query_one("#choice-list", Static).update("\n".join(lines))
+        step_no = self.session.idx // 2 + 1
+        self.query_one("#status-bar", Static).update(
+            f"問題 {self.puzzle['id']}: {mate_label(self.puzzle)}  {self.puzzle['title']}\n"
+            f"手順 {step_no}/{self.puzzle['mate_in']}  詰ませる手は？(評価は開示しません)"
+        )
+
+    def action_pick(self, key):
+        if self.session.phase != PuzzlePhase.CHOOSING:
+            return
+        if key not in KEYS[: len(self.session.choices)]:
+            return
+        idx = KEYS.index(key)
+        if self.session.focused_idx == idx:
+            self._commit(idx)
+        else:
+            self.session.focus(idx)
+            self._refresh_view()
+
+    def _commit(self, idx):
+        self.session.apply_choice(idx)
+        if self.session.phase == PuzzlePhase.CHOOSING:
+            self._refresh_view()
+        else:
+            self.app.push_screen(PuzzleResultScreen(self.puzzle, self.session))
+
+    def action_abandon(self):
+        self.session.abandon()
+        self.app.push_screen(PuzzleResultScreen(self.puzzle, self.session))
+
+
+_PUZZLE_RESULT_MESSAGES = {
+    PuzzlePhase.SUCCESS: "成功。チェックメイトです。",
+    PuzzlePhase.MISS: "失敗。別の手を選びました。",
+    PuzzlePhase.FAIL: "失敗。規定手数で詰みませんでした。",
+    PuzzlePhase.ABORTED: "中断しました。",
+}
+
+
+class PuzzleResultScreen(ModalScreen):
+    BINDINGS = [
+        ("h", "retry", "リトライ"),
+        ("j", "another", "別の問題"),
+        ("k", "to_menu", "メニューへ戻る"),
+        ("q", "quit_app", "終了"),
+    ]
+
+    def __init__(self, puzzle, session, **kwargs):
+        super().__init__(**kwargs)
+        self.puzzle = puzzle
+        self.session = session
+
+    def compose(self):
+        yield BoardWidget(id="result-board")
+        yield Static(id="result-message")
+        yield Footer()
+
+    def on_mount(self):
+        board = self.session.board
+        model = {}
+        if board.move_stack and self.session.final_choice_idx is not None:
+            model = puzzle_result_model(board, board.peek(), self.session.final_choice_idx)
+        self.query_one("#result-board", BoardWidget).update_board(board, model)
+
+        message = _PUZZLE_RESULT_MESSAGES[self.session.phase]
+        self.query_one("#result-message", Static).update(
+            f"{message}\n\nh  リトライ\nj  別の問題\nk  メニューへ戻る\nq  終了"
+        )
+
+    def action_retry(self):
+        self.app.pop_screen()  # PuzzleResultScreen
+        self.app.pop_screen()  # PuzzleScreen
+        self.app.push_screen(PuzzleScreen(self.puzzle))
+
+    def action_another(self):
+        self.app.pop_screen()  # PuzzleResultScreen
+        self.app.pop_screen()  # PuzzleScreen -> PuzzleSelectScreen
+
+    def action_to_menu(self):
+        self.app.pop_screen()  # PuzzleResultScreen
+        self.app.pop_screen()  # PuzzleScreen
+        self.app.pop_screen()  # PuzzleSelectScreen -> MenuScreen
+
+    def action_quit_app(self):
+        self.app.exit()
