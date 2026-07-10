@@ -100,7 +100,8 @@ async def test_board_widget_compact_renders_three_lines_per_rank_with_block_art(
 
         lines = text.split("\n")
         assert len(lines) == 8 * 3 + 1  # 8ランク x 3行 + ファイルラベル行
-        assert lines[-1].strip() == "a    b    c    d    e    f    g    h"
+        file_label = lines[-1].strip()
+        assert list("abcdefgh") == [c for c in file_label if c != " "]
         assert "█" in text  # ブロックアート文字
 
 
@@ -141,10 +142,15 @@ async def test_board_widget_focused_choice_uses_distinct_bg_but_piece_own_fg_col
         assert art2 == pawn_art
         # 3択それぞれ異なる識別色の背景
         assert len({bg0, bg1, bg2}) == 3
-        # フォーカス中(b1)は bold、他はdimで区別されるが、文字色自体は白駒色で共通
+        # フォーカス中(b1)は識別色そのまま+bold、非フォーカス(g1)は「沈んだ」識別色の
+        # 背景になる(駒自体の彩度=文字色は変えない、症状⑤対応)
         assert "bold" in fg1
-        assert "dim" in fg0
-        assert fg0.endswith(fg1.split()[-1])  # 同じ駒色コードを使っている
+        assert bg1 == theme.IDENTITY_BG[1]
+        assert bg0 == theme.IDENTITY_BG_DIM[0]
+        assert "dim" not in fg0  # 駒の文字色自体はdimにしない
+        white_knight_fg = theme.piece_fg(chess.Piece(chess.KNIGHT, chess.WHITE))
+        assert fg0.endswith(white_knight_fg)
+        assert fg1.endswith(white_knight_fg)
 
 
 @pytest.mark.asyncio
@@ -272,6 +278,25 @@ async def test_battle_screen_boots_and_shows_three_choices_always_visible(monkey
         assert "l) ♟ a3 (a2→a3)" in body
         # 症状②の前提: 開示前は色/差が見えない
         assert "🟢" not in body and "🟡" not in body and "🔴" not in body
+
+
+@pytest.mark.asyncio
+async def test_battle_side_panel_stats_are_populated_once_choices_shown(monkeypatch):
+    """症状④: xキーで戦績に切り替えても中身が空にならないことを確認する
+    (以前は update_stats が一度も呼ばれず空のままだった)。"""
+    _stub_battle_evaluation(monkeypatch, position_eval="White +0.3")
+    screen = BattleScreen(engine_factory=lambda: FakeEngine())
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await _wait_for_choices(app)
+        side = app.screen.query_one("#side", SidePanel)
+
+        side.cycle_mode()  # movelog -> stats
+        await pilot.pause()
+
+        body = str(app.screen.query_one("#stats-body").render())
+        assert "形勢 White +0.3" in body
+        assert "Stats" in body
 
 
 @pytest.mark.asyncio
@@ -462,6 +487,52 @@ async def test_puzzle_number_screen_shows_error_for_unknown_id():
 
         assert isinstance(app.screen, PuzzleNumberScreen)
         assert "見つかりません" in str(app.screen.query_one("#puzzle-number-error").render())
+
+
+@pytest.mark.asyncio
+async def test_puzzle_screen_has_guide_side_panel_visible_by_default():
+    """症状③: 詰めモードに駒の動きガイドが復活していることを確認する。"""
+    puzzle = next(p for p in PUZZLES if p["mate_in"] == 2)
+    screen = PuzzleScreen(puzzle)
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        side = app.screen.query_one("#side", SidePanel)
+        assert side.mode == "guide"
+        assert side.query_one("#guide-body").display is True
+        body = str(side.query_one("#guide-body").render())
+        assert "♟ Pawn" in body
+
+
+@pytest.mark.asyncio
+async def test_puzzle_screen_shows_opponent_reply_highlight_on_next_step():
+    """症状②: 詰めモードで正解後、相手(前段)の応手が淡黄でハイライトされることを
+    確認する(以前は choice_model しか合成しておらず消えていた)。"""
+    puzzle = next(p for p in PUZZLES if p["mate_in"] == 2)
+    screen = PuzzleScreen(puzzle)
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        correct = chess.Move.from_uci(puzzle["solution"][0])
+        idx = next(i for i, (mv, _, _) in enumerate(screen.session.choices) if mv == correct)
+        key = KEYS[idx]
+        await pilot.press(key)
+        await pilot.pause()
+        await pilot.press(key)
+        await pilot.pause()
+
+        assert screen.session.phase == PuzzlePhase.CHOOSING
+        reply = screen.session.board.peek()
+        assert reply == chess.Move.from_uci(puzzle["solution"][1])
+
+        board_widget = app.screen.query_one("#board", BoardWidget)
+        rendered_model = board_widget._model
+        # 3択の識別色に上書きされていない限り、応手の from/to は LASTMOVE のまま
+        for sq in (reply.from_square, reply.to_square):
+            cell = rendered_model.get(sq)
+            assert cell is not None
+            if cell.choice_index is None:
+                assert cell.role.name == "LASTMOVE"
 
 
 @pytest.mark.asyncio

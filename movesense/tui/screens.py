@@ -67,21 +67,25 @@ class MenuScreen(Screen):
         self.app.exit()
 
 
-def _key_badge(idx, focused):
-    """行頭のマーカー＋識別色付きキー記号(例 "→ j)")の Text を作る。"""
+def _key_badge(idx, focused, dimmed=False):
+    """行頭のマーカー＋識別色付きキー記号(例 "→ j)")の Text を作る。
+
+    dimmed は「他の候補がフォーカスされている間、自分は注目されていない」ことを
+    示す(盤面の CHOICE_DIMMED と同じ扱い。focused の方が優先)。
+    """
     t = Text()
     t.append("→ " if focused else "  ")
-    t.append(f"{KEYS[idx]})", style=theme.key_badge_style(idx))
+    t.append(f"{KEYS[idx]})", style=theme.key_badge_style(idx, dimmed=dimmed and not focused))
     return t
 
 
-def _choice_line(idx, board, item, focused):
+def _choice_line(idx, board, item, focused, dimmed=False):
     move, _loss, _color = item
     san = board.san(move)
     glyph = piece_glyph(board.piece_at(move.from_square))
     frm = chess.square_name(move.from_square)
     to = chess.square_name(move.to_square)
-    t = _key_badge(idx, focused)
+    t = _key_badge(idx, focused, dimmed=dimmed)
     t.append(f" {glyph} {san} ({frm}→{to})")
     return t
 
@@ -135,7 +139,7 @@ class BattleScreen(Screen):
 
     def compose(self):
         yield Header()
-        with Horizontal():
+        with Horizontal(id="board-row"):
             yield BoardWidget(id="board")
             yield SidePanel(id="side")
         yield Static(id="status-bar")
@@ -170,6 +174,9 @@ class BattleScreen(Screen):
     def _show_choices(self):
         self._render_choice_board()
         self._render_choice_list()
+        side = self.query_one("#side", SidePanel)
+        side.update_stats(self.session.stats, self.session.position_eval)
+        side.update_guide(self.session.stats, self.session.position_eval)
         self.query_one("#status-bar", Static).update(
             f"形勢 {self.session.position_eval} / どれを指す？"
         )
@@ -184,8 +191,13 @@ class BattleScreen(Screen):
         self.query_one("#board", BoardWidget).update_board(self.session.board, model)
 
     def _render_choice_list(self):
+        focused_idx = self.session.focused_idx
         lines = [
-            _choice_line(i, self.session.board, item, focused=(self.session.focused_idx == i))
+            _choice_line(
+                i, self.session.board, item,
+                focused=(focused_idx == i),
+                dimmed=(focused_idx is not None and focused_idx != i),
+            )
             for i, item in enumerate(self.session.choices)
         ]
         self.query_one("#choice-list", Static).update(Text("\n").join(lines))
@@ -414,13 +426,13 @@ class PuzzleNumberScreen(Screen):
         self.app.pop_screen()
 
 
-def _puzzle_choice_line(idx, board, item, focused):
+def _puzzle_choice_line(idx, board, item, focused, dimmed=False):
     move, _loss, _color = item
     san = board.san(move)
     side = "White" if board.turn == chess.WHITE else "Black"
     frm = chess.square_name(move.from_square)
     to = chess.square_name(move.to_square)
-    t = _key_badge(idx, focused)
+    t = _key_badge(idx, focused, dimmed=dimmed)
     t.append(f" {side}: {san} ({frm}→{to})")
     return t
 
@@ -443,7 +455,9 @@ class PuzzleScreen(Screen):
 
     def compose(self):
         yield Header()
-        yield BoardWidget(id="board")
+        with Horizontal(id="board-row"):
+            yield BoardWidget(id="board")
+            yield SidePanel(id="side", modes=("guide",))
         yield Static(id="status-bar")
         yield Static(id="choice-list")
         yield Footer()
@@ -452,12 +466,22 @@ class PuzzleScreen(Screen):
         self._refresh_view()
 
     def _refresh_view(self):
-        model = choice_model(
-            self.session.board, self.session.choices, focused_index=self.session.focused_idx
+        board = self.session.board
+        model = {}
+        if board.move_stack:
+            # 相手(または前段)の直近手を淡黄で。3択の識別色が上書きする。
+            model.update(lastmove_model(board, board.peek()))
+        model.update(
+            choice_model(board, self.session.choices, focused_index=self.session.focused_idx)
         )
-        self.query_one("#board", BoardWidget).update_board(self.session.board, model)
+        self.query_one("#board", BoardWidget).update_board(board, model)
+        focused_idx = self.session.focused_idx
         lines = [
-            _puzzle_choice_line(i, self.session.board, item, focused=(self.session.focused_idx == i))
+            _puzzle_choice_line(
+                i, board, item,
+                focused=(focused_idx == i),
+                dimmed=(focused_idx is not None and focused_idx != i),
+            )
             for i, item in enumerate(self.session.choices)
         ]
         self.query_one("#choice-list", Static).update(Text("\n").join(lines))

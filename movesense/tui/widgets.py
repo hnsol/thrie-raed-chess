@@ -8,9 +8,11 @@ from movesense.stats import movement_help_lines
 
 from . import glyphs, theme
 
-# 症状①: 駒をブロックアートで大きく描く(chess-tui 方式)。マス幅は5固定。
+# 症状①: 駒をブロックアートで大きく描く(chess-tui 方式)。
+# 端末セルは縦横比がおよそ1:2(横に細長い)なので、駒アート自体の幅(5)より
+# マス幅を広く取らないと盤面全体が縦長に見える。7にするとおよそ正方形に近づく。
+SQUARE_W = 7
 # 縦スペースが足りない端末では small(1文字) にフォールバックする。
-SQUARE_W = 5
 # compact 盤(8ランク×3行 + ファイルラベル1行 = 25行)＋周辺 UI がおよそ収まる
 # ターミナル高さの下限。これ未満なら small に落とす。
 COMPACT_MIN_TERMINAL_HEIGHT = 30
@@ -113,15 +115,22 @@ class MoveLogWidget(RichLog):
 
 
 class SidePanel(Static):
-    """右サイドパネル。x キーで 棋譜 → 戦績 → 駒ガイド の順に切り替える。"""
+    """右サイドパネル。x キーで指定されたモード集合を順に切り替える。
 
-    MODES = ("movelog", "stats", "guide")
+    BattleScreen は既定で movelog/stats/guide の3つ、PuzzleScreen は
+    guide のみ(切替対象なし)、というように画面ごとに使うモードを絞れる。
+    """
 
-    def __init__(self, **kwargs):
+    MODE_LABELS = {"movelog": "棋譜", "stats": "戦績", "guide": "駒の動き"}
+    _WIDGET_ID = {"movelog": "movelog", "stats": "stats-body", "guide": "guide-body"}
+
+    def __init__(self, modes=("movelog", "stats", "guide"), **kwargs):
         super().__init__(**kwargs)
-        self.mode = "movelog"
+        self.modes = modes
+        self.mode = modes[0]
 
     def compose(self):
+        yield Static(id="panel-header")
         yield MoveLogWidget(id="movelog")
         yield Static(id="stats-body")
         yield Static(id="guide-body")
@@ -135,14 +144,18 @@ class SidePanel(Static):
         return self.query_one("#movelog", MoveLogWidget)
 
     def cycle_mode(self):
-        idx = self.MODES.index(self.mode)
-        self.mode = self.MODES[(idx + 1) % len(self.MODES)]
+        idx = self.modes.index(self.mode)
+        self.mode = self.modes[(idx + 1) % len(self.modes)]
         self._apply_visibility()
 
     def _apply_visibility(self):
-        widget_id = {"movelog": "movelog", "stats": "stats-body", "guide": "guide-body"}
-        for name, wid in widget_id.items():
+        for name, wid in self._WIDGET_ID.items():
             self.query_one(f"#{wid}").display = (name == self.mode)
+        header = f"[{self.MODE_LABELS[self.mode]}]"
+        others = [m for m in self.modes if m != self.mode]
+        if others:
+            header += "  x: " + "→".join(self.MODE_LABELS[m] for m in others)
+        self.query_one("#panel-header", Static).update(header)
 
     def update_stats(self, stats, position_eval):
         lines = movement_help_lines(stats=stats, position_eval=position_eval, panel_mode="stats")
