@@ -14,21 +14,43 @@ learn_chess.py — 3択で覚えるチェス
   Stockfish 本体(engine)。Macなら: brew install stockfish
 """
 
-import os
 import sys
-import json
 import random
-import shutil
-import subprocess
 import termios
 import tty
-from dataclasses import dataclass, field
-from pathlib import Path
 import chess
-import chess.pgn
 import chess.engine
 
-APP_NAME = "MoveSense Chess"
+from movesense.config import (
+    APP_NAME,
+    ANALYSIS_DEPTH,
+    CPU_SKILL,
+    CPU_DEPTH,
+    GREEN_MAX,
+    YELLOW_MAX,
+    KEYS,
+    MENU_KEYS,
+    RESULT_KEYS,
+    find_stockfish,
+)
+from movesense.evaluation import (
+    classify,
+    evaluate_all_moves,
+    evaluate_position,
+    format_position_eval,
+    move_facts,
+    pick_three,
+)
+from movesense.puzzles import (
+    PUZZLES,
+    find_puzzle_by_id,
+    get_puzzles_by_difficulty,
+    mate_label,
+    pick_puzzle_three,
+    puzzle_board,
+)
+from movesense.stats import BattleStats, movement_help_lines
+from movesense.review import copy_to_clipboard, game_pgn, game_review_text
 
 # ---- 単キー入力 --------------------------------------------------------
 # ターミナルを一時的に cbreak モードにして、Enterなしで1キーを拾う。
@@ -46,11 +68,6 @@ def read_key():
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
     return ch.lower()
-
-# 画面の3択(左・中・右)に対応するキー
-KEYS = ["j", "k", "l"]
-MENU_KEYS = {"j", "k", "l", "q"}
-RESULT_KEYS = {"h", "j", "k", "q"}
 
 def pause(msg="  ─ キーで次へ ─"):
     """1ビートごとに立ち止まる。パイプ等の非対話時は止まらない。"""
@@ -83,26 +100,7 @@ def read_menu_choice(valid):
         if key in valid:
             return key
 
-# ---- 設定 --------------------------------------------------------------
-# Stockfish の場所を自動探索(PATH → よくある場所)。見つからなければ手動指定。
-def find_stockfish():
-    p = shutil.which("stockfish")
-    if p:
-        return p
-    for cand in ("/usr/games/stockfish", "/opt/homebrew/bin/stockfish",
-                 "/usr/local/bin/stockfish"):
-        if os.path.exists(cand):
-            return cand
-    return None
-
-ANALYSIS_DEPTH = 12      # 3択を選ぶための読みの深さ。大きいほど正確・遅い
-CPU_SKILL      = 3       # 相手CPUの強さ 0(最弱)〜20(最強)。初心者は3前後
-CPU_DEPTH      = 6       # 相手CPUの読みの深さ
-
-# 色分けのしきい値(センチポーン=歩1枚≒100)。best手からの損失で判定
-GREEN_MAX  = 30          # 損失これ以下 → 緑(ほぼ最善)
-YELLOW_MAX = 150         # ここまで → 黄、超えたら → 赤
-
+# ---- 表示設定 ------------------------------------------------------------
 LABELS = {
     "green":  ("\033[92m", "🟢 良い手"),
     "yellow": ("\033[93m", "🟡 普通  "),
@@ -140,199 +138,6 @@ IDENTITY = [
 ]
 
 BOARD_TEXT_W = 2 + 8 * SQUARE_W
-
-
-@dataclass
-class BattleStats:
-    moves: int = 0
-    counts: dict = field(default_factory=lambda: {"green": 0, "yellow": 0, "red": 0})
-    total_loss: int = 0
-    last_color: str | None = None
-    last_loss: int | None = None
-    panel_mode: str = "stats"
-
-    def record(self, color, loss):
-        self.moves += 1
-        self.counts[color] += 1
-        self.total_loss += loss
-        self.last_color = color
-        self.last_loss = loss
-
-    def lines(self):
-        avg = round(self.total_loss / self.moves) if self.moves else 0
-        last = "-" if self.last_color is None else f"{self.last_color} {self.last_loss}"
-        return [
-            "Stats",
-            f"Moves {self.moves}",
-            f"G/Y/R {self.counts['green']}/{self.counts['yellow']}/{self.counts['red']}",
-            f"Avg loss {avg}",
-            f"Last {last}",
-        ]
-
-
-def format_position_eval(cp, mate=None):
-    if mate is not None:
-        side = "White" if mate > 0 else "Black"
-        return f"{side} mate in {abs(mate)}"
-    if cp is None or abs(cp) <= 20:
-        return "互角"
-    side = "White" if cp > 0 else "Black"
-    return f"{side} +{abs(cp) / 100:.1f}"
-
-
-def movement_help_lines(stats=None, position_eval=None, panel_mode="help"):
-    lines = []
-    if position_eval is not None and panel_mode == "stats":
-        lines += ["Battle", f"形勢 {position_eval}"]
-        if stats is not None:
-            lines += stats.lines()
-        lines += ["", "x: 動き"]
-        return lines
-    lines += [
-        "動き",
-        "♟ Pawn   前1 初手2",
-        "         取る=斜め",
-        "♞ Knight L字",
-        "♝ Bishop 斜め",
-        "♜ Rook   縦横",
-        "♛ Queen  縦横斜め",
-        "♚ King   周囲1",
-    ]
-    if position_eval is not None:
-        lines += ["x: Stats"]
-    return lines
-
-
-PUZZLE_FILE = Path(__file__).with_name("puzzles.json")
-
-
-def load_puzzles():
-    with PUZZLE_FILE.open(encoding="utf-8") as f:
-        return json.load(f)
-
-
-PUZZLES = load_puzzles()
-
-
-# ---- 評価まわり --------------------------------------------------------
-def classify(loss):
-    if loss <= GREEN_MAX:
-        return "green"
-    if loss <= YELLOW_MAX:
-        return "yellow"
-    return "red"
-
-
-def evaluate_all_moves(engine, board):
-    """
-    全合法手を評価。best手との損失(センチポーン)昇順で
-    [(move, loss, color)] を返す。
-    """
-    legal = list(board.legal_moves)
-    infos = engine.analyse(
-        board,
-        chess.engine.Limit(depth=ANALYSIS_DEPTH),
-        multipv=len(legal),
-    )
-    scored = []
-    for info in infos:
-        move = info["pv"][0]
-        score = info["score"].pov(board.turn).score(mate_score=10000)
-        scored.append((move, score))
-    best = max(s for _, s in scored)
-    result = [(m, best - s, classify(best - s)) for m, s in scored]
-    result.sort(key=lambda x: x[1])
-    return result
-
-
-def evaluate_position(engine, board, depth=8):
-    if engine is None:
-        return "互角"
-    info = engine.analyse(board, chess.engine.Limit(depth=depth))
-    score = info["score"].pov(chess.WHITE)
-    return format_position_eval(score.score(mate_score=10000), mate=score.mate())
-
-
-def pick_three(evaluated):
-    """
-    最善手を必ず含め、できるだけ 黄・赤 も1つずつ。
-    足りない色は他から補充。3手未満の局面ならある分だけ。
-    """
-    if not evaluated:
-        return []
-
-    best = evaluated[0]
-    buckets = {"green": [], "yellow": [], "red": []}
-    for item in evaluated:
-        if item == best:
-            continue
-        buckets[item[2]].append(item)
-
-    chosen = [best]
-    for color in ("yellow", "red"):
-        if buckets[color]:
-            chosen.append(random.choice(buckets[color]))
-
-    if len(chosen) < 3:
-        rest = [x for x in evaluated if x not in chosen]
-        random.shuffle(rest)
-        chosen += rest[: 3 - len(chosen)]
-
-    chosen = chosen[:3]
-    random.shuffle(chosen)   # 色順に並ばないように
-    return chosen
-
-
-def puzzle_board(puzzle):
-    return chess.Board(puzzle["fen"])
-
-
-def get_puzzles_by_difficulty(mate_in):
-    return [p for p in PUZZLES if p["mate_in"] == mate_in]
-
-
-def mate_label(puzzle):
-    return f"mate in {puzzle['mate_in']}"
-
-
-def find_puzzle_by_id(puzzle_id):
-    for puzzle in PUZZLES:
-        if puzzle["id"] == puzzle_id:
-            return puzzle
-    return None
-
-
-def pick_puzzle_three(board, correct_move):
-    choices = [(correct_move, 0, "green")]
-    rest = [m for m in board.legal_moves if m != correct_move]
-    random.shuffle(rest)
-    choices += [(m, 0, "yellow") for m in rest[:2]]
-    random.shuffle(choices)
-    return choices
-
-
-def move_facts(board, move):
-    """一言解説の材料になる、確認できる事実だけを拾う。"""
-    facts = []
-    if board.is_capture(move):
-        facts.append("駒を取る")
-    if move.promotion:
-        facts.append("成る")
-    if board.is_castling(move):
-        facts.append("キャスリング")
-    board.push(move)
-    if board.is_check():
-        facts.append("王手")
-    board.pop()
-    # 動かした駒が相手に取られる位置で、味方が守っていない = ただ捨ての危険
-    to_sq = move.to_square
-    tmp = board.copy()
-    tmp.push(move)
-    attacked = tmp.is_attacked_by(not board.turn, to_sq)
-    defended = tmp.is_attacked_by(board.turn, to_sq)
-    if attacked and not defended:
-        facts.append("取られる位置(守りなし)")
-    return facts
 
 
 # ---- 表示 --------------------------------------------------------------
@@ -513,36 +318,6 @@ def render_puzzle_choice(idx, board, item):
     src = chess.square_name(move.from_square)
     dst = chess.square_name(move.to_square)
     return f"  {keytag} {side_to_move_label(board)}: {san:6} {src}->{dst}"
-
-
-def game_pgn(board, result="*", termination="Unfinished"):
-    game = chess.pgn.Game.from_board(board)
-    game.headers["Event"] = APP_NAME
-    game.headers["White"] = "Human"
-    game.headers["Black"] = "CPU"
-    game.headers["Result"] = result
-    game.headers["Termination"] = termination
-    return str(game)
-
-
-def game_review_text(board, result="*", termination="Unfinished"):
-    pgn = game_pgn(board, result=result, termination=termination)
-    return (
-        "この棋譜を見て、初心者向けに改善点を教えてください。\n"
-        "特に、悪手・見落とし・駒の動かし方の理解不足がありそうな場面を、"
-        "短く具体的に指摘してください。\n\n"
-        f"{pgn}"
-    )
-
-
-def copy_to_clipboard(text):
-    if not shutil.which("pbcopy"):
-        return False
-    try:
-        subprocess.run(["pbcopy"], input=text, text=True, check=True)
-    except (OSError, subprocess.CalledProcessError):
-        return False
-    return True
 
 
 def show_game_export(board, result="*", termination="Unfinished"):
