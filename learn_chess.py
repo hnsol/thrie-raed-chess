@@ -407,9 +407,9 @@ def _choice_overrides(board, choices):
     ov = {}
     for i, (move, _, _) in enumerate(choices):
         bg, _ = IDENTITY[i]
-        from_content, from_cw, _ = _piece_content(board.piece_at(move.from_square))
+        from_content, from_cw, from_fg = _piece_content(board.piece_at(move.from_square))
         to_content, to_cw, to_fg = _piece_content(board.piece_at(move.to_square))
-        ov[move.from_square] = (bg, from_content, from_cw, W_PIECE)
+        ov[move.from_square] = (bg, from_content, from_cw, from_fg)
         ov[move.to_square] = (bg, to_content, to_cw, to_fg)
     return ov
 
@@ -469,8 +469,8 @@ def show_result_board(board, choices, sel, panel_lines=None):
         if i == sel:
             continue
         bg, _ = IDENTITY[i]
-        content, cw, _ = _piece_content(board.piece_at(mv.from_square))
-        ov[mv.from_square] = (bg, content, cw, W_PIECE)
+        content, cw, fg = _piece_content(board.piece_at(mv.from_square))
+        ov[mv.from_square] = (bg, content, cw, fg)
         to_content, to_cw, to_fg = _piece_content(board.piece_at(mv.to_square))
         ov[mv.to_square] = (bg, to_content, to_cw, to_fg)
     # 選んだ手: 識別色で単色(出発点=空き / 着地点=動いた駒)。上書き優先。
@@ -499,6 +499,20 @@ def render_choice(idx, board, item, reveal, chosen_idx=None):
     tail = f"{DIM}(差 {loss}){RESET}"
     factstr = f"  {DIM}{facts}{RESET}" if facts else ""
     return f"  {keytag} {col}{label}{RESET} {san:6} {tail}{factstr}{mark}"
+
+
+def side_to_move_label(board):
+    return "White" if board.turn == chess.WHITE else "Black"
+
+
+def render_puzzle_choice(idx, board, item):
+    move, _, _ = item
+    san = board.san(move)
+    bg, fg = IDENTITY[idx]
+    keytag = f"{bg}{fg} {KEYS[idx]} {RESET}"
+    src = chess.square_name(move.from_square)
+    dst = chess.square_name(move.to_square)
+    return f"  {keytag} {side_to_move_label(board)}: {san:6} {src}->{dst}"
 
 
 def game_pgn(board, result="*", termination="Unfinished"):
@@ -703,11 +717,12 @@ def puzzle_turn(board, puzzle, solution_index):
     show_title("puzzle")
     render_puzzle_choices_board(board, choices)
     print(f"  問題 {puzzle['id']}: {mate_label(puzzle)}  {puzzle['title']}")
+    print(f"  手番: {side_to_move_label(board)}")
     print(f"  {DIM}手順 {solution_index // 2 + 1}/{puzzle['mate_in']}{RESET}")
     print()
     print("  詰ませる手は？（評価は開示しません）")
     for i, item in enumerate(choices):
-        print(render_choice(i, board, item, reveal=False))
+        print(render_puzzle_choice(i, board, item))
     valid = KEYS[:len(choices)]
     print(f"  {DIM}{' / '.join(valid)} で選択、q で終了{RESET}")
     while True:
@@ -715,25 +730,33 @@ def puzzle_turn(board, puzzle, solution_index):
         if key == "q":
             return "quit"
         if key in valid:
-            selected = choices[valid.index(key)][0]
+            selected_idx = valid.index(key)
+            selected = choices[selected_idx][0]
             if selected != correct:
-                return "miss"
-            san = board.san(correct)
-            board.push(correct)
-            return san
+                board.push(selected)
+                return "miss", selected_idx
+            san = board.san(selected)
+            board.push(selected)
+            return san, selected_idx
 
 
 def run_puzzle(puzzle):
     board = puzzle_board(puzzle)
     solution = puzzle["solution"]
     idx = 0
+    final_choice_idx = None
     while idx < len(solution):
         result = puzzle_turn(board, puzzle, idx)
-        if result in ("quit", "miss"):
+        if result == "quit":
             return result, None
+        if isinstance(result, tuple) and result[0] == "miss":
+            _, choice_idx = result
+            return "miss", (board, choice_idx)
+        _, choice_idx = result
+        final_choice_idx = choice_idx
         idx += 1
         if board.is_checkmate():
-            return "success", board
+            return "success", (board, final_choice_idx)
         if idx >= len(solution):
             return "fail", None
         reply = chess.Move.from_uci(solution[idx])
@@ -741,15 +764,21 @@ def run_puzzle(puzzle):
             return "fail", None
         board.push(reply)
         idx += 1
-    return ("success", board) if board.is_checkmate() else ("fail", None)
+    return ("success", (board, final_choice_idx)) if board.is_checkmate() else ("fail", None)
 
 
-def puzzle_result_menu(status, puzzle, final_board=None):
-    if status == "success" and final_board is not None:
+def puzzle_result_menu(status, puzzle, final_result=None):
+    if status in ("success", "miss") and final_result is not None:
+        final_board, final_choice_idx = final_result
         clear_screen()
         show_title("puzzle")
         last = final_board.peek() if final_board.move_stack else None
-        overrides = _lastmove_overrides(final_board, last) if last else {}
+        overrides = {}
+        if last:
+            bg, _ = IDENTITY[final_choice_idx]
+            content, cw, fg = _piece_content(final_board.piece_at(last.to_square))
+            overrides[last.from_square] = (bg, "", 0, "")
+            overrides[last.to_square] = (bg, content, cw, fg)
         _render_board(final_board, overrides)
     print()
     if status == "success":
@@ -771,8 +800,8 @@ def puzzle_result_menu(status, puzzle, final_board=None):
 def run_puzzle_mode():
     puzzle = choose_puzzle()
     while puzzle:
-        status, final_board = run_puzzle(puzzle)
-        key = puzzle_result_menu(status, puzzle, final_board=final_board)
+        status, final_result = run_puzzle(puzzle)
+        key = puzzle_result_menu(status, puzzle, final_result=final_result)
         if key == "h":
             continue
         if key == "j":

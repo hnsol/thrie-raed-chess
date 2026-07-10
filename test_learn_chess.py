@@ -15,6 +15,7 @@ from learn_chess import (
     puzzle_board,
     read_menu_choice,
     render_annotated_board,
+    render_puzzle_choice,
     render_board_lines,
     render_puzzle_choices_board,
     show_title,
@@ -47,10 +48,29 @@ def test_success_result_shows_final_board_before_message(monkeypatch, capsys):
     keys = iter(["q"])
     monkeypatch.setattr("learn_chess.read_key", lambda: next(keys))
 
-    assert learn_chess.puzzle_result_menu("success", puzzle, board) == "q"
+    assert learn_chess.puzzle_result_menu("success", puzzle, (board, 0)) == "q"
 
     out = capsys.readouterr().out
     assert out.rindex("\n8 ") < out.rindex("成功。チェックメイトです。")
+    assert "48;5;45" in out
+    assert "48;5;228" not in out
+
+
+def test_miss_result_shows_moved_board_before_message(monkeypatch, capsys):
+    import learn_chess
+
+    puzzle = [p for p in PUZZLES if p["mate_in"] == 2][0]
+    board = puzzle_board(puzzle)
+    wrong = next(move for move in board.legal_moves if move.uci() != puzzle["solution"][0])
+    board.push(wrong)
+    keys = iter(["q"])
+    monkeypatch.setattr("learn_chess.read_key", lambda: next(keys))
+
+    assert learn_chess.puzzle_result_menu("miss", puzzle, (board, 1)) == "q"
+
+    out = capsys.readouterr().out
+    assert out.rindex("\n8 ") < out.rindex("失敗。別の手を選びました。")
+    assert "48;5;213" in out
 
 
 def test_bundled_puzzles_cover_mate_in_2_3_4_only():
@@ -79,6 +99,18 @@ def test_puzzle_three_choices_include_correct_move(monkeypatch):
     assert any(move == correct for move, _, _ in choices)
 
 
+def test_puzzle_choice_shows_side_and_from_to():
+    puzzle = [p for p in PUZZLES if p["id"] == "00eNe"][0]
+    board = puzzle_board(puzzle)
+    item = (chess.Move.from_uci(puzzle["solution"][0]), 0, "green")
+
+    line = render_puzzle_choice(0, board, item)
+
+    assert "Black:" in line
+    assert "Rxe1+" in line
+    assert "e6->e1" in line
+
+
 def test_mate_labels_use_chess_terms():
     assert {mate_label(p) for p in PUZZLES} == {"mate in 2", "mate in 3", "mate in 4"}
 
@@ -103,6 +135,20 @@ def test_candidate_board_does_not_place_keys_on_destination(capsys):
     assert " j " not in out
     assert " k " not in out
     assert " l " not in out
+
+
+def test_candidate_board_keeps_black_piece_color(capsys):
+    board = chess.Board(None)
+    board.set_piece_at(chess.A1, chess.Piece(chess.KING, chess.WHITE))
+    board.set_piece_at(chess.F6, chess.Piece(chess.KING, chess.BLACK))
+    board.turn = chess.BLACK
+    choices = [(chess.Move.from_uci("f6e6"), 0, "green")]
+
+    render_annotated_board(board, choices)
+
+    out = capsys.readouterr().out
+    assert "\033[48;5;45m\033[1;38;5;16m" in out
+    assert "\033[48;5;45m\033[1;38;5;231m" not in out
 
 
 def test_puzzle_choices_board_does_not_place_keys_on_destination(capsys):
