@@ -1,6 +1,6 @@
 """色の一元管理。boardmodel.Cell -> Rich style文字列 のマッピングを持つ。
 
-現行CLI(learn_chess.py)の256色パレットを踏襲しつつ、フォーカス/ダイム表現
+旧CLI版の256色パレットを踏襲しつつ、フォーカス/ダイム表現
 (症状②のプレビュー強調)を追加する。
 """
 
@@ -13,7 +13,7 @@ BLACK_PIECE_FG = "bold color(16)"
 LASTMOVE_BG = "color(228)"
 HIGHLIGHT_FG = "bold color(16)"
 
-# 選択肢の識別色。CLI の IDENTITY と同じ配色(j: シアン / k: マゼンタ / l: オレンジ)。
+# 選択肢の識別色。旧CLI版の IDENTITY と同じ配色(j: シアン / k: マゼンタ / l: オレンジ)。
 IDENTITY_BG = ["color(45)", "color(213)", "color(214)"]
 
 
@@ -29,7 +29,7 @@ def piece_fg(piece):
 def cell_background(cell):
     """boardmodel.Cell -> (bg色, 修飾子)。
 
-    升の文字色は常に駒自体の色(piece_fg)で決まる(CLI版と同じ)。HIGHLIGHT_FG は
+    升の文字色は常に駒自体の色(piece_fg)で決まる(旧CLI版と同じ)。HIGHLIGHT_FG は
     盤面の升には使わず、選択肢キーのバッジ表示(将来のChoicePanel)専用。
     "dim"/"bold" は色名ではなく別枠の修飾子なので分けて返す(Rich の Style 構文は
     "on <色>" の後に色名以外を置けない)。

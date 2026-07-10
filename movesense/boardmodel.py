@@ -1,8 +1,7 @@
-"""升目の意味づけ(色付き表示の対象)を、実際の色やANSI/Textualの描画から切り離すモデル。
+"""升目の意味づけ(色付き表示の対象)を、実際の色の描画から切り離すモデル。
 
 square -> Cell の辞書を返す純関数群。Cell.role が「なぜこの升が強調されているか」を
-表し、実際の色決定は各描画層(learn_chess.py の ANSI 変換、movesense/tui の Textual
-テーマ)が個別に行う。
+表し、実際の色決定は movesense/tui の Textual テーマが個別に行う。
 """
 
 from dataclasses import dataclass
@@ -42,7 +41,7 @@ def choice_model(board, choices, focused_index=None):
 
     focused_index が指定されていれば、その手だけ CHOICE_FOCUSED、
     残りは CHOICE_DIMMED になる(症状②のプレビュー強調に対応)。
-    未指定なら全て CHOICE(現行CLIの通常表示)。
+    未指定なら全て CHOICE(通常表示)。
     """
     model = {}
     for i, (move, _, _) in enumerate(choices):
@@ -83,7 +82,7 @@ def puzzle_result_model(board, move, choice_index):
     }
 
 
-# 白黒の区別が付くよう、全駒に「塗りつぶし記号」を使い色で分ける(CLI/TUI共通)。
+# 白黒の区別が付くよう、全駒に「塗りつぶし記号」を使い色で分ける。
 SOLID_GLYPHS = {"P": "♟", "N": "♞", "B": "♝", "R": "♜", "Q": "♛", "K": "♚"}
 
 

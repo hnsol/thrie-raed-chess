@@ -1,7 +1,7 @@
 """UI非依存のゲーム進行の状態機械。
 
 BattleSession / PuzzleSession は盤面・選択肢・フェーズだけを保持し、
-描画やキー入力は一切行わない。CLI(learn_chess.py)と Textual UI の
+描画やキー入力は一切行わない。
 両方から同じ進行ロジックを呼び出せるようにするための層。
 """
 

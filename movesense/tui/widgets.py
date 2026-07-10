@@ -9,7 +9,7 @@ from movesense.stats import movement_help_lines
 
 from . import theme
 
-# 症状①: 現行CLIの1行3桁から2行5桁へ拡大(面積約3倍)。
+# 症状①: 旧CLI版の1行3桁から2行5桁へ拡大(面積約3倍)。
 SQUARE_W = 5
 SQUARE_H = 2
 
