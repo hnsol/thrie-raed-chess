@@ -81,3 +81,13 @@ def puzzle_result_model(board, move, choice_index):
         move.from_square: Cell(CellRole.RESULT_CHOSEN, choice_index, show_piece=False),
         move.to_square: Cell(CellRole.RESULT_CHOSEN, choice_index, board.piece_at(move.to_square)),
     }
+
+
+# 白黒の区別が付くよう、全駒に「塗りつぶし記号」を使い色で分ける(CLI/TUI共通)。
+SOLID_GLYPHS = {"P": "♟", "N": "♞", "B": "♝", "R": "♜", "Q": "♛", "K": "♚"}
+
+
+def piece_glyph(piece):
+    if piece is None:
+        return ""
+    return SOLID_GLYPHS[piece.symbol().upper()]
