@@ -1,0 +1,7 @@
+Screen {
+    background: $surface;
+}
+
+#menu-body {
+    padding: 2 4;
+}
