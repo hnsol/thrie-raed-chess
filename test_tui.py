@@ -1,11 +1,66 @@
+import asyncio
+import types
+
 import chess
 import pytest
 from textual.app import App, ComposeResult
 
 from movesense.boardmodel import choice_model, lastmove_model
+from movesense.session import BattlePhase
 from movesense.stats import BattleStats
 from movesense.tui.app import MoveSenseApp
+from movesense.tui.screens import BattleScreen
 from movesense.tui.widgets import BoardWidget, SidePanel, _square_visual
+
+
+EVALUATED = [
+    (chess.Move.from_uci("g1f3"), 0, "green"),
+    (chess.Move.from_uci("b1c3"), 80, "yellow"),
+    (chess.Move.from_uci("a2a3"), 200, "red"),
+]
+
+
+class FakeEngine:
+    """evaluate_all_moves/evaluate_position をmonkeypatchする前提の空エンジン。"""
+
+    def __init__(self, cpu_move=None):
+        self.cpu_move = cpu_move
+        self.quit_called = False
+
+    def play(self, board, limit, options=None):
+        move = self.cpu_move or next(iter(board.legal_moves))
+        return types.SimpleNamespace(move=move)
+
+    def quit(self):
+        self.quit_called = True
+
+
+def _stub_battle_evaluation(monkeypatch, evaluated=None, position_eval="White +0.1"):
+    monkeypatch.setattr(
+        "movesense.session.evaluate_all_moves", lambda engine, board: evaluated or EVALUATED
+    )
+    monkeypatch.setattr("movesense.session.evaluate_position", lambda engine, board: position_eval)
+    import random
+
+    monkeypatch.setattr(random, "shuffle", lambda items: None)
+
+
+async def _wait_until(condition, timeout=2.0, interval=0.01):
+    elapsed = 0.0
+    while not condition():
+        await asyncio.sleep(interval)
+        elapsed += interval
+        if elapsed >= timeout:
+            raise AssertionError("condition not met within timeout")
+
+
+class _BattleHarness(App):
+    def __init__(self, screen, **kwargs):
+        super().__init__(**kwargs)
+        self._screen = screen
+
+    def on_mount(self):
+        self.push_screen(self._screen)
 
 
 class _BoardHarness(App):
@@ -158,3 +213,142 @@ async def test_q_quits_the_app():
         await pilot.press("q")
         await pilot.pause()
         assert app.is_running is False
+
+
+def _choice_list_text(app):
+    return str(app.screen.query_one("#choice-list").render())
+
+
+async def _wait_for_choices(app, timeout=2.0):
+    """session.phase はワーカースレッド内で先に変わり、実際のウィジェット更新は
+    call_from_thread 経由で遅れてメインスレッドに届くため、内部状態ではなく
+    描画結果そのもの(choice-listに何か表示されたか)を待機条件にする。"""
+    await _wait_until(lambda: _choice_list_text(app).strip() != "", timeout=timeout)
+
+
+@pytest.mark.asyncio
+async def test_battle_screen_boots_and_shows_three_choices_always_visible(monkeypatch):
+    _stub_battle_evaluation(monkeypatch)
+    screen = BattleScreen(engine_factory=lambda: FakeEngine())
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await _wait_for_choices(app)
+
+        body = _choice_list_text(app)
+        assert "j) ♞ Nf3 (g1→f3)" in body
+        assert "k) ♞ Nc3 (b1→c3)" in body
+        assert "l) ♟ a3 (a2→a3)" in body
+        # 症状②の前提: 開示前は色/差が見えない
+        assert "🟢" not in body and "🟡" not in body and "🔴" not in body
+
+
+@pytest.mark.asyncio
+async def test_pressing_key_once_focuses_and_twice_commits(monkeypatch):
+    _stub_battle_evaluation(monkeypatch)
+    screen = BattleScreen(engine_factory=lambda: FakeEngine())
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await _wait_for_choices(app)
+
+        await pilot.press("k")
+        await pilot.pause()
+        assert screen.session.focused_idx == 1
+        assert screen.session.phase == BattlePhase.HUMAN_CHOOSING  # まだ確定していない
+        body = _choice_list_text(app)
+        assert "→ k) ♞ Nc3 (b1→c3)" in body
+
+        await pilot.press("k")
+        await pilot.pause()
+        assert screen.session.phase == BattlePhase.REVEALED
+        assert screen.session.chosen_idx == 1
+        body = _choice_list_text(app)
+        assert "🟡 普通" in body
+        assert "← 選んだ手" in body
+
+
+@pytest.mark.asyncio
+async def test_switching_focus_before_commit_does_not_commit_the_first_choice(monkeypatch):
+    _stub_battle_evaluation(monkeypatch)
+    screen = BattleScreen(engine_factory=lambda: FakeEngine())
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await _wait_for_choices(app)
+
+        await pilot.press("j")
+        await pilot.pause()
+        await pilot.press("l")
+        await pilot.pause()
+
+        assert screen.session.phase == BattlePhase.HUMAN_CHOOSING
+        assert screen.session.focused_idx == 2
+
+
+@pytest.mark.asyncio
+async def test_commit_then_continue_key_advances_to_cpu_move_and_flashes(monkeypatch):
+    _stub_battle_evaluation(monkeypatch)
+    cpu_move = chess.Move.from_uci("e7e5")
+    screen = BattleScreen(engine_factory=lambda: FakeEngine(cpu_move=cpu_move))
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await _wait_for_choices(app)
+        await pilot.press("j")
+        await pilot.pause()
+        await pilot.press("j")
+        await pilot.pause()
+        assert screen.session.phase == BattlePhase.REVEALED
+
+        await pilot.press("j")  # 「もう一度キーでCPUの番へ」
+        await _wait_until(lambda: screen.last_cpu_move == cpu_move)
+        await _wait_for_choices(app, timeout=3.0)
+        assert screen.session.phase == BattlePhase.HUMAN_CHOOSING
+
+        assert screen.session.board.move_stack[-1] == cpu_move
+        moves = [str(line) for line in app.screen.query_one("#side", SidePanel).move_log.lines]
+        assert any("Nf3" in line for line in moves)
+        assert any("e5" in line for line in moves)
+
+
+@pytest.mark.asyncio
+async def test_x_toggles_side_panel_mode(monkeypatch):
+    _stub_battle_evaluation(monkeypatch)
+    screen = BattleScreen(engine_factory=lambda: FakeEngine())
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await _wait_for_choices(app)
+        side = app.screen.query_one("#side", SidePanel)
+        assert side.mode == "movelog"
+
+        await pilot.press("x")
+        await pilot.pause()
+        assert side.mode == "stats"
+
+
+@pytest.mark.asyncio
+async def test_resign_shows_export_screen_and_quits_engine(monkeypatch):
+    _stub_battle_evaluation(monkeypatch)
+    engine = FakeEngine()
+    screen = BattleScreen(engine_factory=lambda: engine)
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await _wait_for_choices(app)
+
+        await pilot.press("r")
+        await _wait_until(
+            lambda: len(app.screen_stack) > 0 and app.screen.query("#export-body")
+        )
+
+        assert screen.session.result == "0-1"
+        assert screen.session.termination == "White resigned"
+        assert engine.quit_called is True
+        body = str(app.screen.query_one("#export-body").render())
+        assert "この棋譜を見て" in body
+
+
+@pytest.mark.asyncio
+async def test_missing_stockfish_shows_error_status(monkeypatch):
+    screen = BattleScreen(engine_factory=lambda: None)
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await _wait_until(
+            lambda: "Stockfish" in str(app.screen.query_one("#status-bar").render())
+        )
