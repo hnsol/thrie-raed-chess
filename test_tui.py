@@ -20,7 +20,11 @@ from movesense.tui.screens import (
     PuzzleResultScreen,
     PuzzleScreen,
     PuzzleSelectScreen,
+    _choice_line,
+    _puzzle_choice_line,
 )
+from movesense.tui import theme
+from movesense.tui import glyphs
 from movesense.tui.widgets import BoardWidget, SidePanel, _square_visual
 
 
@@ -85,18 +89,33 @@ class _SidePanelHarness(App):
 
 
 @pytest.mark.asyncio
-async def test_board_widget_renders_two_lines_per_rank_plus_file_labels():
+async def test_board_widget_compact_renders_three_lines_per_rank_with_block_art():
     app = _BoardHarness()
-    async with app.run_test():
+    async with app.run_test(size=(90, 45)):  # 高い端末 → compact(3行)駒
         widget = app.query_one("#board", BoardWidget)
+        assert widget._size_name() == "compact"
         widget.update_board(chess.Board())
 
         text = str(widget.render())
 
         lines = text.split("\n")
-        assert len(lines) == 8 * 2 + 1  # 8ランク x 2行 + ファイルラベル行
-        assert "8 " in lines[1]  # 駒とラベルは各段の2行目(下段)にある
+        assert len(lines) == 8 * 3 + 1  # 8ランク x 3行 + ファイルラベル行
         assert lines[-1].strip() == "a    b    c    d    e    f    g    h"
+        assert "█" in text  # ブロックアート文字
+
+
+@pytest.mark.asyncio
+async def test_board_widget_falls_back_to_single_glyph_on_short_terminal():
+    app = _BoardHarness()
+    async with app.run_test(size=(90, 18)):  # 低い端末 → small(1文字)
+        widget = app.query_one("#board", BoardWidget)
+        assert widget._size_name() == "small"
+        widget.update_board(chess.Board())
+
+        text = str(widget.render())
+
+        lines = text.split("\n")
+        assert len(lines) == 8 * 1 + 1
         assert "♜" in text and "♛" in text
 
 
@@ -112,12 +131,14 @@ async def test_board_widget_focused_choice_uses_distinct_bg_but_piece_own_fg_col
         ]
         model = choice_model(board, choices, focused_index=1)
 
-        bg0, fg0, glyph0 = _square_visual(board, model, chess.G1, 6, 0)
-        bg1, fg1, glyph1 = _square_visual(board, model, chess.B1, 1, 0)
-        bg2, fg2, glyph2 = _square_visual(board, model, chess.A2, 0, 1)
+        bg0, fg0, art0 = _square_visual(board, model, chess.G1, 6, 0, "compact")
+        bg1, fg1, art1 = _square_visual(board, model, chess.B1, 1, 0, "compact")
+        bg2, fg2, art2 = _square_visual(board, model, chess.A2, 0, 1, "compact")
 
-        assert glyph0 == glyph1 == "♞"
-        assert glyph2 == "♟"
+        knight_art = glyphs.piece_art(chess.Piece(chess.KNIGHT, chess.WHITE), "compact")
+        pawn_art = glyphs.piece_art(chess.Piece(chess.PAWN, chess.WHITE), "compact")
+        assert art0 == art1 == knight_art
+        assert art2 == pawn_art
         # 3択それぞれ異なる識別色の背景
         assert len({bg0, bg1, bg2}) == 3
         # フォーカス中(b1)は bold、他はdimで区別されるが、文字色自体は白駒色で共通
@@ -136,11 +157,11 @@ async def test_board_widget_lastmove_clears_from_square_and_shows_piece_on_to_sq
         widget = app.query_one("#board", BoardWidget)
         widget.update_board(board, model)
 
-        from_bg, from_fg, from_glyph = _square_visual(board, model, chess.E2, 4, 1)
-        to_bg, to_fg, to_glyph = _square_visual(board, model, chess.E4, 4, 3)
+        from_bg, from_fg, from_art = _square_visual(board, model, chess.E2, 4, 1, "compact")
+        to_bg, to_fg, to_art = _square_visual(board, model, chess.E4, 4, 3, "compact")
 
-        assert from_glyph == ""  # 出発点は空き表示
-        assert to_glyph == "♟"
+        assert all(row == "" for row in from_art)  # 出発点は空き表示
+        assert to_art == glyphs.piece_art(chess.Piece(chess.PAWN, chess.WHITE), "compact")
         assert from_bg == to_bg  # 淡黄背景で統一
 
 
@@ -564,3 +585,27 @@ async def test_puzzle_result_quit_exits_app():
         await pilot.pause()
 
         assert app.is_running is False
+
+
+def test_choice_line_key_badge_uses_board_identity_color():
+    board = chess.Board()
+    for idx, uci in ((0, "g1f3"), (1, "b1c3"), (2, "a2a3")):
+        item = (chess.Move.from_uci(uci), 0, "green")
+        text = _choice_line(idx, board, item, focused=False)
+        # 表示テキストは従来どおり(既存テスト互換)
+        assert f"{KEYS[idx]})" in text.plain
+        # キー記号 j)/k)/l) に盤面と同じ識別色の背景スタイルが付く
+        key_spans = [s for s in text.spans if text.plain[s.start:s.end] == f"{KEYS[idx]})"]
+        assert key_spans, f"no styled span for {KEYS[idx]})"
+        assert theme.IDENTITY_BG[idx] in str(key_spans[0].style)
+
+
+def test_puzzle_choice_line_key_badge_uses_board_identity_color():
+    puzzle = next(p for p in PUZZLES if p["mate_in"] == 2)
+    board = chess.Board(puzzle["fen"])
+    correct = chess.Move.from_uci(puzzle["solution"][0])
+    item = (correct, 0, "green")
+    text = _puzzle_choice_line(1, board, item, focused=False)
+    key_spans = [s for s in text.spans if text.plain[s.start:s.end] == f"{KEYS[1]})"]
+    assert key_spans
+    assert theme.IDENTITY_BG[1] in str(key_spans[0].style)

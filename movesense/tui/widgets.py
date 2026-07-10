@@ -4,14 +4,16 @@ from rich.style import Style
 from rich.text import Text
 from textual.widgets import RichLog, Static
 
-from movesense.boardmodel import piece_glyph
 from movesense.stats import movement_help_lines
 
-from . import theme
+from . import glyphs, theme
 
-# 症状①: 旧CLI版の1行3桁から2行5桁へ拡大(面積約3倍)。
+# 症状①: 駒をブロックアートで大きく描く(chess-tui 方式)。マス幅は5固定。
+# 縦スペースが足りない端末では small(1文字) にフォールバックする。
 SQUARE_W = 5
-SQUARE_H = 2
+# compact 盤(8ランク×3行 + ファイルラベル1行 = 25行)＋周辺 UI がおよそ収まる
+# ターミナル高さの下限。これ未満なら small に落とす。
+COMPACT_MIN_TERMINAL_HEIGHT = 30
 
 _COLOR_BADGE = {"green": "🟢", "yellow": "🟡", "red": "🔴"}
 
@@ -22,27 +24,27 @@ def _center(text, width):
     return " " * left + text + " " * (total - left)
 
 
-def _square_visual(board, model, sq, file_idx, rank_idx):
-    """(bg色, fg style文字列, 表示グリフ) を返す。文字色は常に駒自体の色。"""
+def _square_visual(board, model, sq, file_idx, rank_idx, size):
+    """(bg色, fg style文字列, アート行リスト) を返す。文字色は常に駒自体の色。"""
     cell = model.get(sq)
     if cell is None:
         bg = theme.checkerboard_bg(file_idx, rank_idx)
         piece = board.piece_at(sq)
-        if piece is None:
-            return bg, "", ""
-        return bg, theme.piece_fg(piece), piece_glyph(piece)
+        fg = theme.piece_fg(piece) if piece is not None else ""
+        return bg, fg, glyphs.piece_art(piece, size)
     bg, modifier = theme.cell_background(cell)
     if cell.show_piece and cell.piece is not None:
-        fg_style = f"{modifier} {theme.piece_fg(cell.piece)}".strip()
-        glyph = piece_glyph(cell.piece)
+        fg = f"{modifier} {theme.piece_fg(cell.piece)}".strip()
+        art = glyphs.piece_art(cell.piece, size)
     else:
-        fg_style = ""
-        glyph = ""
-    return bg, fg_style, glyph
+        fg = ""
+        art = glyphs.piece_art(None, size)
+    return bg, fg, art
 
 
 class BoardWidget(Static):
-    """拡大盤(2行x5桁の升目)。update_board() で局面とハイライトを差し替える。"""
+    """拡大盤。update_board() で局面とハイライトを差し替える。
+    ターミナルの高さに応じて駒を compact(3行) / small(1文字) で描く。"""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -54,22 +56,32 @@ class BoardWidget(Static):
         self._model = model or {}
         self.refresh()
 
+    def _size_name(self):
+        # 駒サイズは自分の高さではなくターミナル全体の高さで決める(自分の高さは
+        # 駒サイズに依存して変わるため、それで判定すると循環する)。
+        try:
+            height = self.app.size.height
+        except Exception:
+            height = 24
+        return "compact" if height >= COMPACT_MIN_TERMINAL_HEIGHT else "small"
+
     def render(self):
         board = self._board
         model = self._model
+        size = self._size_name()
+        square_h = glyphs.SIZE_HEIGHTS[size]
         lines = []
         for rank in range(7, -1, -1):
-            row_texts = [Text() for _ in range(SQUARE_H)]
+            row_texts = [Text() for _ in range(square_h)]
             for i, t in enumerate(row_texts):
-                label = f"{rank + 1} " if i == SQUARE_H - 1 else "  "
+                label = f"{rank + 1} " if i == square_h - 1 else "  "
                 t.append(label)
             for file_idx in range(8):
                 sq = chess.square(file_idx, rank)
-                bg, fg, glyph = _square_visual(board, model, sq, file_idx, rank)
+                bg, fg, art = _square_visual(board, model, sq, file_idx, rank, size)
                 style = Style.parse(f"{fg} on {bg}" if fg else f"on {bg}")
                 for i, t in enumerate(row_texts):
-                    content = _center(glyph, SQUARE_W) if i == SQUARE_H - 1 else " " * SQUARE_W
-                    t.append(content, style=style)
+                    t.append(_center(art[i], SQUARE_W), style=style)
             lines.extend(row_texts)
         file_label = Text("  " + "".join(_center(c, SQUARE_W) for c in "abcdefgh"))
         lines.append(file_label)

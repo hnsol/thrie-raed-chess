@@ -17,6 +17,11 @@ HIGHLIGHT_FG = "bold color(16)"
 IDENTITY_BG = ["color(45)", "color(213)", "color(214)"]
 
 
+def key_badge_style(idx):
+    """選択肢リストの j/k/l キー記号に付ける、盤面と同じ識別色の背景スタイル。"""
+    return f"{HIGHLIGHT_FG} on {IDENTITY_BG[idx]}"
+
+
 def checkerboard_bg(file_idx, rank_idx):
     is_light = (file_idx + rank_idx) % 2 == 1
     return LIGHT_SQUARE_BG if is_light else DARK_SQUARE_BG

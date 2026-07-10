@@ -2,6 +2,7 @@ import random
 
 import chess
 import chess.engine
+from rich.text import Text
 from textual.containers import Horizontal
 from textual.screen import ModalScreen, Screen
 from textual.widgets import Footer, Header, Input, Static
@@ -24,6 +25,7 @@ from movesense.session import (
     outcome_message,
 )
 
+from . import theme
 from .widgets import BoardWidget, SidePanel
 
 LABELS = {
@@ -65,14 +67,23 @@ class MenuScreen(Screen):
         self.app.exit()
 
 
+def _key_badge(idx, focused):
+    """行頭のマーカー＋識別色付きキー記号(例 "→ j)")の Text を作る。"""
+    t = Text()
+    t.append("→ " if focused else "  ")
+    t.append(f"{KEYS[idx]})", style=theme.key_badge_style(idx))
+    return t
+
+
 def _choice_line(idx, board, item, focused):
     move, _loss, _color = item
     san = board.san(move)
     glyph = piece_glyph(board.piece_at(move.from_square))
     frm = chess.square_name(move.from_square)
     to = chess.square_name(move.to_square)
-    marker = "→" if focused else " "
-    return f"{marker} {KEYS[idx]}) {glyph} {san} ({frm}→{to})"
+    t = _key_badge(idx, focused)
+    t.append(f" {glyph} {san} ({frm}→{to})")
+    return t
 
 
 def _revealed_line(idx, revealed_choice):
@@ -80,7 +91,9 @@ def _revealed_line(idx, revealed_choice):
     mark = "  ← 選んだ手" if rc.is_chosen else ""
     facts = "、".join(rc.facts)
     factstr = f"  ({facts})" if facts else ""
-    return f"  {KEYS[idx]}) {LABELS[rc.color]} {rc.san} (差 {rc.loss}){factstr}{mark}"
+    t = _key_badge(idx, focused=False)
+    t.append(f" {LABELS[rc.color]} {rc.san} (差 {rc.loss}){factstr}{mark}")
+    return t
 
 
 def _cpu_move_status(board_after_push, move):
@@ -175,7 +188,7 @@ class BattleScreen(Screen):
             _choice_line(i, self.session.board, item, focused=(self.session.focused_idx == i))
             for i, item in enumerate(self.session.choices)
         ]
-        self.query_one("#choice-list", Static).update("\n".join(lines))
+        self.query_one("#choice-list", Static).update(Text("\n").join(lines))
 
     def action_pick(self, key):
         if self.session.phase == BattlePhase.REVEALED:
@@ -200,7 +213,7 @@ class BattleScreen(Screen):
         model = result_model(self.session.board, [(r.move, r.loss, r.color) for r in revealed], idx)
         self.query_one("#board", BoardWidget).update_board(self.session.board, model)
         lines = [_revealed_line(i, rc) for i, rc in enumerate(revealed)]
-        self.query_one("#choice-list", Static).update("\n".join(lines))
+        self.query_one("#choice-list", Static).update(Text("\n").join(lines))
         self.query_one("#side", SidePanel).move_log.add_move(chosen.san, color=chosen.color)
 
         if self.session.phase == BattlePhase.GAME_OVER:
@@ -407,8 +420,9 @@ def _puzzle_choice_line(idx, board, item, focused):
     side = "White" if board.turn == chess.WHITE else "Black"
     frm = chess.square_name(move.from_square)
     to = chess.square_name(move.to_square)
-    marker = "→" if focused else " "
-    return f"{marker} {KEYS[idx]}) {side}: {san} ({frm}→{to})"
+    t = _key_badge(idx, focused)
+    t.append(f" {side}: {san} ({frm}→{to})")
+    return t
 
 
 class PuzzleScreen(Screen):
@@ -446,7 +460,7 @@ class PuzzleScreen(Screen):
             _puzzle_choice_line(i, self.session.board, item, focused=(self.session.focused_idx == i))
             for i, item in enumerate(self.session.choices)
         ]
-        self.query_one("#choice-list", Static).update("\n".join(lines))
+        self.query_one("#choice-list", Static).update(Text("\n").join(lines))
         step_no = self.session.idx // 2 + 1
         self.query_one("#status-bar", Static).update(
             f"問題 {self.puzzle['id']}: {mate_label(self.puzzle)}  {self.puzzle['title']}\n"
