@@ -1,26 +1,36 @@
 # MoveSense Chess
 
-*[日本語版はこちら / Japanese version](README.ja.md)*
+*[English version](README.en.md)*
 
-A terminal (TUI) chess trainer for beginners: instead of finding moves from scratch, you learn by picking the best move out of **three choices**. Built with [Textual](https://textual.textualize.io/) and [python-chess](https://python-chess.readthedocs.io/).
+「3択で覚えるチェス」— ターミナル（TUI）で動くチェス初心者向けトレーナーです。ゼロから指し手を考えるのではなく、**3つの候補手から選ぶ**ことで最善手の感覚を身につけます。[Textual](https://textual.textualize.io/) と [python-chess](https://python-chess.readthedocs.io/) 製。
 
-## Features
+## スクリーンショット
 
-- **Battle mode** — play against a CPU opponent. On each of your turns, Stockfish proposes three candidate moves; pick one with a single key (`j` / `k` / `l`). Your choice is graded green (near-best), yellow, or red by centipawn loss, with running stats.
-- **Puzzle mode** — mate-in-2/3/4 puzzles from the Lichess puzzle database, presented as 3-choice quizzes.
-- **Game review export** — export the finished game as a PGN-based review prompt you can paste into an AI assistant.
-- Block-art chess pieces rendered right in your terminal.
+対戦モード（CPU と対局し、3択で最善手を学ぶ）
 
-## Requirements
+![対戦モード](docs/images/battle-mode.png)
+
+詰めチェスモード（3択で詰み手順を当てる）
+
+![詰めチェスモード](docs/images/puzzle-mode.png)
+
+## 特徴
+
+- **対戦モード** — CPU と対局。自分の手番ごとに Stockfish が候補手を3つ提示し、`j` / `k` / `l` の1キーで選択。選んだ手はセンチポーン損失に応じて 緑（ほぼ最善）/ 黄 / 赤 で評価され、統計も表示されます。
+- **パズルモード** — Lichess パズルデータベース由来の 2手/3手/4手詰めを3択クイズで出題。
+- **対局レビュー出力** — 終局後、PGN 付きのレビュー用プロンプトを書き出して AI アシスタントに貼り付けられます。
+- ブロックアートの駒をターミナルにそのまま描画。
+
+## 動作要件
 
 - Python 3.11+
-- [Stockfish](https://stockfishchess.org/) on your `PATH` (required for battle mode; puzzle mode works without it)
+- [Stockfish](https://stockfishchess.org/)（対戦モードに必須。パズルモードは不要）
   - macOS: `brew install stockfish`
   - Debian/Ubuntu: `apt install stockfish`
 
-## Installation
+## インストール
 
-With [uv](https://docs.astral.sh/uv/):
+[uv](https://docs.astral.sh/uv/) を使う場合:
 
 ```sh
 git clone https://github.com/hnsol/movesense-chess.git
@@ -28,38 +38,38 @@ cd movesense-chess
 uv sync
 ```
 
-## Usage
+## 使い方
 
 ```sh
 uv run python -m movesense
 ```
 
-Or, after installing the package (`uv tool install .` or `pip install .`):
+パッケージとしてインストール（`uv tool install .` または `pip install .`）した場合:
 
 ```sh
 movesense
 ```
 
-### Keys
+### キー操作
 
-- `j` / `k` / `l` — pick the left / middle / right choice
-- `q` — back / quit
+- `j` / `k` / `l` — 左 / 中 / 右 の選択肢を選ぶ
+- `q` — 戻る / 終了
 
-## Development
+## 開発
 
 ```sh
 uv sync
 uv run pytest
 ```
 
-### Regenerating the bundled puzzles
+### 同梱パズルの再生成
 
-The puzzles in `movesense/data/puzzles.json` are extracted from the [Lichess puzzle database](https://database.lichess.org/#puzzles) (CC0):
+`movesense/data/puzzles.json` は [Lichess パズルデータベース](https://database.lichess.org/#puzzles)（CC0）から抽出しています:
 
 ```sh
 zstd -dc lichess_db_puzzle.csv.zst | uv run python tools/extract_lichess_puzzles.py movesense/data/puzzles.json
 ```
 
-## License
+## ライセンス
 
-MIT — see [LICENSE](LICENSE). Third-party attributions (Lichess puzzle database, chess-tui glyphs) are listed in [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
+MIT — [LICENSE](LICENSE) を参照。サードパーティの帰属表示（Lichess パズルデータベース、chess-tui の駒グリフ）は [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES) に記載しています。
