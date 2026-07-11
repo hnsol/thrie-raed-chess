@@ -16,18 +16,17 @@ Instead of finding moves from scratch, you learn by picking the best move out of
 - **Game review export** — export the finished game as a PGN-based review prompt you can paste into an AI assistant.
 - Block-art chess pieces rendered right in your terminal.
 
-<details>
-<summary>Screenshots</summary>
+### Battle mode
 
-Battle mode (play a CPU and learn the best move via 3 choices)
+Play a CPU and learn the best move via 3 choices:
 
 ![Battle mode](docs/images/battle-mode.png)
 
-Puzzle mode (find the mating sequence via 3 choices)
+### Puzzle mode
+
+Find the mating sequence via 3 choices:
 
 ![Puzzle mode](docs/images/puzzle-mode.png)
-
-</details>
 
 ## Requirements
 
