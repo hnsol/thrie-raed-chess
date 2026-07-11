@@ -58,13 +58,52 @@ class MenuScreen(Screen):
         yield Footer()
 
     def action_battle(self):
-        self.app.push_screen(BattleScreen())
+        self.app.push_screen(ColorSelectScreen())
 
     def action_puzzle(self):
         self.app.push_screen(PuzzleSelectScreen())
 
     def action_quit(self):
         self.app.exit()
+
+
+class ColorSelectScreen(Screen):
+    """対戦前の色選択。"""
+
+    BINDINGS = [
+        ("j", "pick_random", "ランダム"),
+        ("k", "pick_white", "白番"),
+        ("l", "pick_black", "黒番"),
+        ("q", "back", "戻る"),
+    ]
+
+    def compose(self):
+        yield Header()
+        yield Static(
+            "色を選んでください\n\n"
+            "j  ランダム\n"
+            "k  白番(先手)\n"
+            "l  黒番(後手)\n"
+            "q  戻る",
+            id="color-select-body",
+        )
+        yield Footer()
+
+    def _start_battle(self, color):
+        self.app.pop_screen()
+        self.app.push_screen(BattleScreen(human_color=color))
+
+    def action_pick_random(self):
+        self._start_battle(random.choice([chess.WHITE, chess.BLACK]))
+
+    def action_pick_white(self):
+        self._start_battle(chess.WHITE)
+
+    def action_pick_black(self):
+        self._start_battle(chess.BLACK)
+
+    def action_back(self):
+        self.app.pop_screen()
 
 
 def _key_badge(idx, focused, dimmed=False):
@@ -121,9 +160,10 @@ class BattleScreen(Screen):
         ("q", "quit_battle", "終了"),
     ]
 
-    def __init__(self, engine_factory=None, **kwargs):
+    def __init__(self, human_color=chess.WHITE, engine_factory=None, **kwargs):
         super().__init__(**kwargs)
-        self.session = BattleSession()
+        self.human_color = human_color
+        self.session = BattleSession(human_color=human_color)
         self._engine_factory = engine_factory or self._default_engine_factory
         self.engine = None
         self._engine_shut_down = False
@@ -163,7 +203,12 @@ class BattleScreen(Screen):
                 "Stockfish が見つかりません。brew install stockfish"
             )
             return
-        self._begin_human_turn()
+        board_widget = self.query_one("#board", BoardWidget)
+        board_widget.set_flipped(self.human_color == chess.BLACK)
+        if self.human_color == chess.BLACK:
+            self._start_cpu_turn()
+        else:
+            self._begin_human_turn()
 
     # ---- 人間の手番 ---------------------------------------------------------
     def _begin_human_turn(self):
@@ -256,7 +301,7 @@ class BattleScreen(Screen):
 
         if self.session.phase == BattlePhase.GAME_OVER:
             self.query_one("#status-bar", Static).update(
-                outcome_message(self.session.board) + "  ─ キーで棋譜へ ─"
+                outcome_message(self.session.board, self.human_color) + "  ─ キーで棋譜へ ─"
             )
             self._game_over_displayed = True
         else:
@@ -303,7 +348,7 @@ class BattleScreen(Screen):
 
     def _show_game_over(self):
         self.query_one("#status-bar", Static).update(
-            outcome_message(self.session.board) + "  ─ キーで棋譜へ ─"
+            outcome_message(self.session.board, self.human_color) + "  ─ キーで棋譜へ ─"
         )
         self._game_over_displayed = True
 
@@ -327,7 +372,8 @@ class BattleScreen(Screen):
             return
         self._shutdown_engine()
         text = game_review_text(
-            self.session.board, result=self.session.result, termination=self.session.termination
+            self.session.board, result=self.session.result,
+            termination=self.session.termination, human_color=self.human_color,
         )
         copied = copy_to_clipboard(text)
         self.app.push_screen(ExportScreen(text, copied))
@@ -514,6 +560,8 @@ class PuzzleScreen(Screen):
         yield Footer()
 
     def on_mount(self):
+        board_widget = self.query_one("#board", BoardWidget)
+        board_widget.set_flipped(self.player_color == chess.BLACK)
         self._refresh_view()
 
     def _is_finished(self):

@@ -132,7 +132,7 @@ def test_outcome_message_covers_checkmate_and_stalemate():
     for san in ["f3", "e5", "g4", "Qh4#"]:
         checkmate_board.push_san(san)
     assert "チェックメイト" in outcome_message(checkmate_board)
-    assert "CPU(Black)" in outcome_message(checkmate_board)  # Black がメイトを決めた
+    assert "CPU" in outcome_message(checkmate_board)  # Black(CPU) がメイトを決めた
 
     stalemate_board = chess.Board("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1")
     assert outcome_message(stalemate_board) == "ステイルメイト(引き分け)"

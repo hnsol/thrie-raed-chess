@@ -52,6 +52,11 @@ class BoardWidget(Static):
         super().__init__(**kwargs)
         self._board = chess.Board()
         self._model = {}
+        self._flipped = False
+
+    def set_flipped(self, flipped):
+        self._flipped = flipped
+        self.refresh()
 
     def update_board(self, board, model=None):
         self._board = board
@@ -70,22 +75,26 @@ class BoardWidget(Static):
     def render(self):
         board = self._board
         model = self._model
+        flipped = self._flipped
         size = self._size_name()
         square_h = glyphs.SIZE_HEIGHTS[size]
         lines = []
-        for rank in range(7, -1, -1):
+        ranks = range(8) if flipped else range(7, -1, -1)
+        files = range(7, -1, -1) if flipped else range(8)
+        for rank in ranks:
             row_texts = [Text() for _ in range(square_h)]
             for i, t in enumerate(row_texts):
                 label = f"{rank + 1} " if i == square_h - 1 else "  "
                 t.append(label)
-            for file_idx in range(8):
+            for file_idx in files:
                 sq = chess.square(file_idx, rank)
                 bg, fg, art = _square_visual(board, model, sq, file_idx, rank, size)
                 style = Style.parse(f"{fg} on {bg}" if fg else f"on {bg}")
                 for i, t in enumerate(row_texts):
                     t.append(_center(art[i], SQUARE_W), style=style)
             lines.extend(row_texts)
-        file_label = Text("  " + "".join(_center(c, SQUARE_W) for c in "abcdefgh"))
+        file_chars = "hgfedcba" if flipped else "abcdefgh"
+        file_label = Text("  " + "".join(_center(c, SQUARE_W) for c in file_chars))
         lines.append(file_label)
         result = lines[0]
         for line in lines[1:]:

@@ -33,10 +33,11 @@ class RevealedChoice:
     is_chosen: bool
 
 
-def outcome_message(board):
+def outcome_message(board, human_color=chess.WHITE):
     """終局理由を1行の日本語メッセージにする(announce_result相当)。"""
     if board.is_checkmate():
-        winner = "CPU(Black)" if board.turn == chess.WHITE else "あなた(White)"
+        loser_is_human = board.turn == human_color
+        winner = "CPU" if loser_is_human else "あなた"
         return f"チェックメイト! 勝者: {winner}"
     if board.is_stalemate():
         return "ステイルメイト(引き分け)"
@@ -48,9 +49,10 @@ def outcome_message(board):
 
 
 class BattleSession:
-    def __init__(self, board=None, stats=None):
+    def __init__(self, board=None, stats=None, human_color=chess.WHITE):
         self.board = board if board is not None else chess.Board()
         self.stats = stats if stats is not None else BattleStats()
+        self.human_color = human_color
         self.phase = BattlePhase.HUMAN_CHOOSING
         self.choices = []          # [(move, loss, color)]
         self.position_eval = "互角"
@@ -118,8 +120,12 @@ class BattleSession:
 
     def resign(self):
         self.phase = BattlePhase.GAME_OVER
-        self.result = "0-1"
-        self.termination = "White resigned"
+        if self.human_color == chess.WHITE:
+            self.result = "0-1"
+            self.termination = "White resigned"
+        else:
+            self.result = "1-0"
+            self.termination = "Black resigned"
 
     def abandon(self):
         self.phase = BattlePhase.GAME_OVER
