@@ -25,8 +25,8 @@ from movesense.boardmodel import piece_glyph
 # 見分けやすさと風格を両立する。幅・高さは従来どおり(3行×5幅)。
 _COMPACT = {
     "P": [
-        "  ▄  ",
-        " ▐█▌ ",
+        "     ",
+        " ▟█▙ ",
         " ▝▀▘ ",
     ],
     "N": [
