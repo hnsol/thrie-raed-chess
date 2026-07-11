@@ -26,7 +26,7 @@ from movesense.boardmodel import piece_glyph
 _COMPACT = {
     "P": [
         "  ▄  ",
-        " ▝█▘ ",
+        " ▐█▌ ",
         " ▝▀▘ ",
     ],
     "N": [
