@@ -51,8 +51,11 @@ def choice_model(board, choices, focused_index=None):
             role = CellRole.CHOICE_FOCUSED
         else:
             role = CellRole.CHOICE_DIMMED
-        model[move.from_square] = Cell(role, i, board.piece_at(move.from_square))
-        model[move.to_square] = Cell(role, i, board.piece_at(move.to_square))
+        for sq in (move.from_square, move.to_square):
+            existing = model.get(sq)
+            if existing and existing.role == CellRole.CHOICE_FOCUSED and role != CellRole.CHOICE_FOCUSED:
+                continue
+            model[sq] = Cell(role, i, board.piece_at(sq))
     return model
 
 

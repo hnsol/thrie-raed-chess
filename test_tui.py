@@ -17,7 +17,6 @@ from movesense.tui.screens import (
     MenuScreen,
     PuzzleDifficultyScreen,
     PuzzleNumberScreen,
-    PuzzleResultScreen,
     PuzzleScreen,
     PuzzleSelectScreen,
     _choice_line,
@@ -315,7 +314,7 @@ async def test_pressing_key_once_focuses_and_twice_commits(monkeypatch):
         assert "→ k) ♞ Nc3 (b1→c3)" in body
 
         await pilot.press("k")
-        await pilot.pause()
+        await _wait_until(lambda: "🟡" in _choice_list_text(app))
         assert screen.session.phase == BattlePhase.REVEALED
         assert screen.session.chosen_idx == 1
         body = _choice_list_text(app)
@@ -341,6 +340,45 @@ async def test_switching_focus_before_commit_does_not_commit_the_first_choice(mo
 
 
 @pytest.mark.asyncio
+async def test_escape_deselects_focused_choice(monkeypatch):
+    _stub_battle_evaluation(monkeypatch)
+    screen = BattleScreen(engine_factory=lambda: FakeEngine())
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await _wait_for_choices(app)
+
+        await pilot.press("k")
+        await pilot.pause()
+        assert screen.session.focused_idx == 1
+
+        await pilot.press("escape")
+        await pilot.pause()
+        assert screen.session.focused_idx is None
+        body = _choice_list_text(app)
+        assert "→ " not in body
+
+
+@pytest.mark.asyncio
+async def test_any_key_advances_from_revealed_phase(monkeypatch):
+    _stub_battle_evaluation(monkeypatch)
+    cpu_move = chess.Move.from_uci("e7e5")
+    screen = BattleScreen(engine_factory=lambda: FakeEngine(cpu_move=cpu_move))
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await _wait_for_choices(app)
+        await pilot.press("j")
+        await pilot.pause()
+        await pilot.press("j")
+        await _wait_until(lambda: not screen._flashing)
+        assert screen.session.phase == BattlePhase.REVEALED
+
+        await pilot.press("space")
+        await _wait_until(lambda: screen.last_cpu_move == cpu_move)
+        await _wait_for_choices(app, timeout=3.0)
+        assert screen.session.phase == BattlePhase.HUMAN_CHOOSING
+
+
+@pytest.mark.asyncio
 async def test_commit_then_continue_key_advances_to_cpu_move_and_flashes(monkeypatch):
     _stub_battle_evaluation(monkeypatch)
     cpu_move = chess.Move.from_uci("e7e5")
@@ -351,10 +389,10 @@ async def test_commit_then_continue_key_advances_to_cpu_move_and_flashes(monkeyp
         await pilot.press("j")
         await pilot.pause()
         await pilot.press("j")
-        await pilot.pause()
+        await _wait_until(lambda: not screen._flashing)
         assert screen.session.phase == BattlePhase.REVEALED
 
-        await pilot.press("j")  # 「もう一度キーでCPUの番へ」
+        await pilot.press("j")
         await _wait_until(lambda: screen.last_cpu_move == cpu_move)
         await _wait_for_choices(app, timeout=3.0)
         assert screen.session.phase == BattlePhase.HUMAN_CHOOSING
@@ -519,7 +557,7 @@ async def test_puzzle_screen_shows_opponent_reply_highlight_on_next_step():
         await pilot.press(key)
         await pilot.pause()
         await pilot.press(key)
-        await pilot.pause()
+        await _wait_until(lambda: not screen._flashing, timeout=5.0)
 
         assert screen.session.phase == PuzzlePhase.CHOOSING
         reply = screen.session.board.peek()
@@ -550,11 +588,11 @@ async def test_puzzle_screen_correct_choices_advance_through_reply_to_success():
             await pilot.press(key)
             await pilot.pause()
             await pilot.press(key)
-            await pilot.pause()
+            await _wait_until(lambda: not screen._flashing, timeout=5.0)
 
-        assert isinstance(app.screen, PuzzleResultScreen)
-        assert app.screen.session.phase == PuzzlePhase.SUCCESS
-        body = str(app.screen.query_one("#result-message").render())
+        assert isinstance(app.screen, PuzzleScreen)
+        assert screen.session.phase == PuzzlePhase.SUCCESS
+        body = str(app.screen.query_one("#status-bar").render())
         assert "成功" in body
 
 
@@ -572,11 +610,11 @@ async def test_puzzle_screen_wrong_choice_reaches_miss_result():
         await pilot.press(key)
         await pilot.pause()
         await pilot.press(key)
-        await pilot.pause()
+        await _wait_until(lambda: not screen._flashing, timeout=5.0)
 
-        assert isinstance(app.screen, PuzzleResultScreen)
-        assert app.screen.session.phase == PuzzlePhase.MISS
-        assert "失敗" in str(app.screen.query_one("#result-message").render())
+        assert isinstance(app.screen, PuzzleScreen)
+        assert screen.session.phase == PuzzlePhase.MISS
+        assert "失敗" in str(app.screen.query_one("#status-bar").render())
 
 
 @pytest.mark.asyncio
@@ -589,8 +627,8 @@ async def test_puzzle_screen_q_aborts_to_result_screen():
         await pilot.press("q")
         await pilot.pause()
 
-        assert isinstance(app.screen, PuzzleResultScreen)
-        assert app.screen.session.phase == PuzzlePhase.ABORTED
+        assert isinstance(app.screen, PuzzleScreen)
+        assert screen.session.phase == PuzzlePhase.ABORTED
 
 
 @pytest.mark.asyncio
@@ -656,6 +694,18 @@ async def test_puzzle_result_quit_exits_app():
         await pilot.pause()
 
         assert app.is_running is False
+
+
+@pytest.mark.asyncio
+async def test_puzzle_screen_shows_player_color_in_status_bar():
+    puzzle = next(p for p in PUZZLES if p["mate_in"] == 2)
+    screen = PuzzleScreen(puzzle)
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        expected = "白番" if screen.player_color == chess.WHITE else "黒番"
+        body = str(app.screen.query_one("#status-bar").render())
+        assert expected in body
 
 
 def test_choice_line_key_badge_uses_board_identity_color():

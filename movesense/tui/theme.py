@@ -4,8 +4,6 @@
 (症状②のプレビュー強調)を追加する。
 """
 
-from rich.color import Color
-
 from movesense.boardmodel import CellRole
 
 LIGHT_SQUARE_BG = "color(180)"
@@ -18,22 +16,9 @@ HIGHLIGHT_FG = "bold color(16)"
 # 選択肢の識別色。旧CLI版の IDENTITY と同じ配色(j: シアン / k: マゼンタ / l: オレンジ)。
 IDENTITY_BG = ["color(45)", "color(213)", "color(214)"]
 
-_DARK_BLEND_TARGET = "color(235)"  # ほぼ黒に近いダーク背景
-
-
-def _dim_color(color_str, factor=0.35):
-    """識別色を暗い背景寄りにブレンドした「沈んだ」版を作る(駒の彩度は変えない)。"""
-    base = Color.parse(color_str).get_truecolor()
-    dark = Color.parse(_DARK_BLEND_TARGET).get_truecolor()
-    r = round(base.red * factor + dark.red * (1 - factor))
-    g = round(base.green * factor + dark.green * (1 - factor))
-    b = round(base.blue * factor + dark.blue * (1 - factor))
-    return f"rgb({r},{g},{b})"
-
-
-# 非フォーカス時の「沈んだ」識別色背景。駒の前景色(白/黒)は一切変えず、
-# 背景だけを暗くすることでフォーカス外の3択を視覚的に後退させる。
-IDENTITY_BG_DIM = [_dim_color(c) for c in IDENTITY_BG]
+# 非フォーカス時の「沈んだ」識別色背景(256色パレットから手動選定)。
+# 駒の前景色(白/黒)は一切変えず、背景だけで「注目していない」ことを示す。
+IDENTITY_BG_DIM = ["color(30)", "color(133)", "color(136)"]
 
 
 def key_badge_style(idx, dimmed=False):

@@ -47,6 +47,4 @@ def movement_help_lines(stats=None, position_eval=None, panel_mode="help"):
         "♛ Queen  縦横斜め",
         "♚ King   周囲1",
     ]
-    if position_eval is not None:
-        lines += ["x: Stats"]
     return lines

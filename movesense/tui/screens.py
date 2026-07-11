@@ -115,6 +115,7 @@ class BattleScreen(Screen):
         ("j", "pick('j')", "選ぶ"),
         ("k", "pick('k')", "選ぶ"),
         ("l", "pick('l')", "選ぶ"),
+        ("escape", "deselect", "選択解除"),
         ("x", "toggle_panel", "表示切替"),
         ("r", "resign", "投了"),
         ("q", "quit_battle", "終了"),
@@ -129,6 +130,8 @@ class BattleScreen(Screen):
         self.last_cpu_move = None
         self._flash_timer = None
         self._flash_ticks_done = 0
+        self._flashing = False
+        self._game_over_displayed = False
 
     @staticmethod
     def _default_engine_factory():
@@ -202,11 +205,27 @@ class BattleScreen(Screen):
         ]
         self.query_one("#choice-list", Static).update(Text("\n").join(lines))
 
-    def action_pick(self, key):
-        if self.session.phase == BattlePhase.REVEALED:
-            self._start_cpu_turn()
+    def on_key(self, event):
+        if self._flashing:
             return
-        if self.session.phase != BattlePhase.HUMAN_CHOOSING:
+        if self._game_over_displayed:
+            self._game_over_displayed = False
+            self._finish_game()
+            return
+        if self.session.phase == BattlePhase.REVEALED:
+            if event.key not in ("q", "x", "r"):
+                self._start_cpu_turn()
+
+    def action_deselect(self):
+        if self._flashing:
+            return
+        if self.session.phase == BattlePhase.HUMAN_CHOOSING and self.session.focused_idx is not None:
+            self.session.focused_idx = None
+            self._render_choice_board()
+            self._render_choice_list()
+
+    def action_pick(self, key):
+        if self._flashing or self.session.phase != BattlePhase.HUMAN_CHOOSING:
             return
         if key not in KEYS[: len(self.session.choices)]:
             return
@@ -220,8 +239,15 @@ class BattleScreen(Screen):
 
     def _commit_choice(self, idx):
         revealed = self.session.apply_choice(idx)
-        chosen = revealed[idx]
+        self._pending_revealed = revealed
+        self._pending_chosen_idx = idx
         self.last_cpu_move = None
+        self._flash_move(revealed[idx].move, self._after_player_flash)
+
+    def _after_player_flash(self):
+        revealed = self._pending_revealed
+        idx = self._pending_chosen_idx
+        chosen = revealed[idx]
         model = result_model(self.session.board, [(r.move, r.loss, r.color) for r in revealed], idx)
         self.query_one("#board", BoardWidget).update_board(self.session.board, model)
         lines = [_revealed_line(i, rc) for i, rc in enumerate(revealed)]
@@ -229,13 +255,32 @@ class BattleScreen(Screen):
         self.query_one("#side", SidePanel).move_log.add_move(chosen.san, color=chosen.color)
 
         if self.session.phase == BattlePhase.GAME_OVER:
-            self.query_one("#status-bar", Static).update(outcome_message(self.session.board))
-            self._finish_game()
+            self.query_one("#status-bar", Static).update(
+                outcome_message(self.session.board) + "  ─ キーで棋譜へ ─"
+            )
+            self._game_over_displayed = True
         else:
             self.query_one("#status-bar", Static).update(
                 f"あなたの手: {chosen.san}  {LABELS[chosen.color]}(差 {chosen.loss})  "
-                "─ もう一度キーでCPUの番へ ─"
+                "─ キーでCPUの番へ ─"
             )
+
+    # ---- フラッシュ(共通) ---------------------------------------------------
+    def _flash_move(self, move, callback):
+        self._flashing = True
+        self._flash_ticks_done = 0
+
+        def tick():
+            self._flash_ticks_done += 1
+            visible = self._flash_ticks_done % 2 == 1
+            model = lastmove_model(self.session.board, move) if visible else {}
+            self.query_one("#board", BoardWidget).update_board(self.session.board, model)
+            if self._flash_ticks_done >= FLASH_TICKS:
+                self._flash_timer.stop()
+                self._flashing = False
+                callback()
+
+        self._flash_timer = self.set_interval(FLASH_INTERVAL, tick)
 
     # ---- CPUの手番 -----------------------------------------------------------
     def _start_cpu_turn(self):
@@ -252,24 +297,15 @@ class BattleScreen(Screen):
         self.query_one("#status-bar", Static).update(_cpu_move_status(board, move))
         self.query_one("#side", SidePanel).move_log.add_move(_cpu_san(board, move), color=None)
         if self.session.phase == BattlePhase.GAME_OVER:
-            self.query_one("#status-bar", Static).update(outcome_message(self.session.board))
-            self._finish_game()
+            self._flash_move(move, self._show_game_over)
         else:
-            self._flash_lastmove(move)
+            self._flash_move(move, self._begin_human_turn)
 
-    def _flash_lastmove(self, move):
-        self._flash_ticks_done = 0
-
-        def tick():
-            self._flash_ticks_done += 1
-            visible = self._flash_ticks_done % 2 == 1
-            model = lastmove_model(self.session.board, move) if visible else {}
-            self.query_one("#board", BoardWidget).update_board(self.session.board, model)
-            if self._flash_ticks_done >= FLASH_TICKS:
-                self._flash_timer.stop()
-                self._begin_human_turn()
-
-        self._flash_timer = self.set_interval(FLASH_INTERVAL, tick)
+    def _show_game_over(self):
+        self.query_one("#status-bar", Static).update(
+            outcome_message(self.session.board) + "  ─ キーで棋譜へ ─"
+        )
+        self._game_over_displayed = True
 
     # ---- パネル/終局 -----------------------------------------------------------
     def action_toggle_panel(self):
@@ -287,6 +323,8 @@ class BattleScreen(Screen):
         self._finish_game()
 
     def _finish_game(self):
+        if self._engine_shut_down:
+            return
         self._shutdown_engine()
         text = game_review_text(
             self.session.board, result=self.session.result, termination=self.session.termination
@@ -437,14 +475,23 @@ def _puzzle_choice_line(idx, board, item, focused, dimmed=False):
     return t
 
 
+_PUZZLE_RESULT_MESSAGES = {
+    PuzzlePhase.SUCCESS: "成功。チェックメイトです。",
+    PuzzlePhase.MISS: "失敗。別の手を選びました。",
+    PuzzlePhase.FAIL: "失敗。規定手数で詰みませんでした。",
+    PuzzlePhase.ABORTED: "中断しました。",
+}
+
+
 class PuzzleScreen(Screen):
-    """詰めチェス。BattleScreenと同じフォーカス→確定の2段階入力・拡大盤を共用するが、
-    評価は開示しない(正解/ミスのみ)。"""
+    """詰めチェス。結果もこの画面内にインラインで表示する。"""
 
     BINDINGS = [
         ("j", "pick('j')", "選ぶ"),
         ("k", "pick('k')", "選ぶ"),
         ("l", "pick('l')", "選ぶ"),
+        ("escape", "deselect", "選択解除"),
+        ("h", "retry", "リトライ"),
         ("q", "abandon", "中断"),
     ]
 
@@ -452,6 +499,10 @@ class PuzzleScreen(Screen):
         super().__init__(**kwargs)
         self.puzzle = puzzle
         self.session = PuzzleSession(puzzle)
+        self.player_color = self.session.board.turn
+        self._flashing = False
+        self._flash_timer = None
+        self._flash_ticks_done = 0
 
     def compose(self):
         yield Header()
@@ -465,11 +516,23 @@ class PuzzleScreen(Screen):
     def on_mount(self):
         self._refresh_view()
 
+    def _is_finished(self):
+        return self.session.phase in (
+            PuzzlePhase.SUCCESS, PuzzlePhase.MISS,
+            PuzzlePhase.FAIL, PuzzlePhase.ABORTED,
+        )
+
+    def action_deselect(self):
+        if self._flashing:
+            return
+        if self.session.phase == PuzzlePhase.CHOOSING and self.session.focused_idx is not None:
+            self.session.focused_idx = None
+            self._refresh_view()
+
     def _refresh_view(self):
         board = self.session.board
         model = {}
         if board.move_stack:
-            # 相手(または前段)の直近手を淡黄で。3択の識別色が上書きする。
             model.update(lastmove_model(board, board.peek()))
         model.update(
             choice_model(board, self.session.choices, focused_index=self.session.focused_idx)
@@ -486,12 +549,22 @@ class PuzzleScreen(Screen):
         ]
         self.query_one("#choice-list", Static).update(Text("\n").join(lines))
         step_no = self.session.idx // 2 + 1
+        side = "白番" if self.player_color == chess.WHITE else "黒番"
         self.query_one("#status-bar", Static).update(
             f"問題 {self.puzzle['id']}: {mate_label(self.puzzle)}  {self.puzzle['title']}\n"
-            f"手順 {step_no}/{self.puzzle['mate_in']}  詰ませる手は？(評価は開示しません)"
+            f"手順 {step_no}/{self.puzzle['mate_in']}  {side}  詰ませる手は？(評価は開示しません)"
         )
 
     def action_pick(self, key):
+        if self._flashing:
+            return
+        if self._is_finished():
+            if key == 'j':
+                self.app.pop_screen()
+            elif key == 'k':
+                self.app.pop_screen()
+                self.app.pop_screen()
+            return
         if self.session.phase != PuzzlePhase.CHOOSING:
             return
         if key not in KEYS[: len(self.session.choices)]:
@@ -504,68 +577,60 @@ class PuzzleScreen(Screen):
             self._refresh_view()
 
     def _commit(self, idx):
-        self.session.apply_choice(idx)
-        if self.session.phase == PuzzlePhase.CHOOSING:
-            self._refresh_view()
+        player_move = self.session.choices[idx][0]
+        result = self.session.apply_choice(idx)
+        if result == "correct" and self.session.phase == PuzzlePhase.CHOOSING:
+            reply = self.session.board.pop()
+            self._flash_move(player_move, lambda: self._after_player_flash(reply))
+        elif self._is_finished():
+            self._flash_move(player_move, self._show_result)
         else:
-            self.app.push_screen(PuzzleResultScreen(self.puzzle, self.session))
+            self._refresh_view()
 
-    def action_abandon(self):
-        self.session.abandon()
-        self.app.push_screen(PuzzleResultScreen(self.puzzle, self.session))
+    def _after_player_flash(self, reply):
+        self.session.board.push(reply)
+        self._flash_move(reply, self._refresh_view)
 
+    def _flash_move(self, move, callback):
+        self._flashing = True
+        self._flash_ticks_done = 0
 
-_PUZZLE_RESULT_MESSAGES = {
-    PuzzlePhase.SUCCESS: "成功。チェックメイトです。",
-    PuzzlePhase.MISS: "失敗。別の手を選びました。",
-    PuzzlePhase.FAIL: "失敗。規定手数で詰みませんでした。",
-    PuzzlePhase.ABORTED: "中断しました。",
-}
+        def tick():
+            self._flash_ticks_done += 1
+            visible = self._flash_ticks_done % 2 == 1
+            model = lastmove_model(self.session.board, move) if visible else {}
+            self.query_one("#board", BoardWidget).update_board(self.session.board, model)
+            if self._flash_ticks_done >= FLASH_TICKS:
+                self._flash_timer.stop()
+                self._flashing = False
+                callback()
 
+        self._flash_timer = self.set_interval(FLASH_INTERVAL, tick)
 
-class PuzzleResultScreen(ModalScreen):
-    BINDINGS = [
-        ("h", "retry", "リトライ"),
-        ("j", "another", "別の問題"),
-        ("k", "to_menu", "メニューへ戻る"),
-        ("q", "quit_app", "終了"),
-    ]
-
-    def __init__(self, puzzle, session, **kwargs):
-        super().__init__(**kwargs)
-        self.puzzle = puzzle
-        self.session = session
-
-    def compose(self):
-        yield BoardWidget(id="result-board")
-        yield Static(id="result-message")
-        yield Footer()
-
-    def on_mount(self):
+    def _show_result(self):
         board = self.session.board
         model = {}
         if board.move_stack and self.session.final_choice_idx is not None:
             model = puzzle_result_model(board, board.peek(), self.session.final_choice_idx)
-        self.query_one("#result-board", BoardWidget).update_board(board, model)
-
-        message = _PUZZLE_RESULT_MESSAGES[self.session.phase]
-        self.query_one("#result-message", Static).update(
-            f"{message}\n\nh  リトライ\nj  別の問題\nk  メニューへ戻る\nq  終了"
+        self.query_one("#board", BoardWidget).update_board(board, model)
+        self.query_one("#status-bar", Static).update(
+            _PUZZLE_RESULT_MESSAGES[self.session.phase]
+        )
+        self.query_one("#choice-list", Static).update(
+            "h  リトライ\nj  別の問題\nk  メニューへ戻る\nq  終了"
         )
 
+    def action_abandon(self):
+        if self._flashing:
+            return
+        if self._is_finished():
+            self.app.exit()
+            return
+        self.session.abandon()
+        self._show_result()
+
     def action_retry(self):
-        self.app.pop_screen()  # PuzzleResultScreen
-        self.app.pop_screen()  # PuzzleScreen
+        if self._flashing or not self._is_finished():
+            return
+        self.app.pop_screen()
         self.app.push_screen(PuzzleScreen(self.puzzle))
-
-    def action_another(self):
-        self.app.pop_screen()  # PuzzleResultScreen
-        self.app.pop_screen()  # PuzzleScreen -> PuzzleSelectScreen
-
-    def action_to_menu(self):
-        self.app.pop_screen()  # PuzzleResultScreen
-        self.app.pop_screen()  # PuzzleScreen
-        self.app.pop_screen()  # PuzzleSelectScreen -> MenuScreen
-
-    def action_quit_app(self):
-        self.app.exit()

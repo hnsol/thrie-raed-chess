@@ -78,7 +78,7 @@ def test_battle_panel_includes_eval_stats_and_move_guide():
 
     assert "形勢 White +0.8" not in help_text
     assert "♟ Pawn" in help_text
-    assert "x: Stats" in help_text
+    assert "x: Stats" not in help_text
 
 
 def test_puzzle_panel_keeps_move_guide_only():
@@ -158,3 +158,16 @@ def test_choice_model_preserves_piece_color_independent_of_identity_bg():
     from_cell = model[chess.F6]
     assert from_cell.role == CellRole.CHOICE
     assert from_cell.piece.color == chess.BLACK
+
+
+def test_choice_model_focused_not_overwritten_by_dimmed_on_shared_square():
+    board = chess.Board("8/8/8/8/8/8/8/R5K1 w - - 0 1")
+    choices = [
+        (chess.Move.from_uci("a1a8"), 0, "green"),
+        (chess.Move.from_uci("a1a4"), 80, "yellow"),
+        (chess.Move.from_uci("a1h1"), 200, "red"),
+    ]
+    model = choice_model(board, choices, focused_index=0)
+    cell = model[chess.A1]
+    assert cell.role == CellRole.CHOICE_FOCUSED
+    assert cell.choice_index == 0
