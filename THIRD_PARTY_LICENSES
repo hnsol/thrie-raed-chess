@@ -1,6 +1,14 @@
 This project includes third-party material under the following licenses.
 
 ================================================================================
+Lichess Puzzle Database — bundled puzzles
+
+The puzzles in movesense/data/puzzles.json were extracted from the Lichess
+puzzle database (https://database.lichess.org/#puzzles) using
+tools/extract_lichess_puzzles.py. The Lichess puzzle database is released
+under the Creative Commons CC0 1.0 Universal (Public Domain Dedication)
+license: https://creativecommons.org/publicdomain/zero/1.0/
+================================================================================
 chess-tui — block-art chess piece glyphs
 https://github.com/thomas-mauran/chess-tui
 

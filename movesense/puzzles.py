@@ -4,7 +4,7 @@ from pathlib import Path
 
 import chess
 
-PUZZLE_FILE = Path(__file__).resolve().parent.parent / "puzzles.json"
+PUZZLE_FILE = Path(__file__).resolve().parent / "data" / "puzzles.json"
 
 
 def load_puzzles():
