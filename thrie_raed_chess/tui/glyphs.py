@@ -13,7 +13,7 @@ THIRD_PARTY_LICENSES を参照。
 
 import chess
 
-from movesense.boardmodel import piece_glyph
+from thrie_raed_chess.boardmodel import piece_glyph
 
 # 駒種(大文字1文字) -> compact アート(3行)。各行は幅5セルを想定。
 # ブロック要素はすべて半角(1セル)。実際の幅ズレは描画側で中央寄せ正規化する。

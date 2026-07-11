@@ -1,4 +1,4 @@
-# MoveSense Chess
+# Thrie Raed Chess
 
 *[日本語版はこちら / Japanese version](README.md)*
 
@@ -33,21 +33,21 @@ Puzzle mode (find the mating sequence via 3 choices)
 With [uv](https://docs.astral.sh/uv/):
 
 ```sh
-git clone https://github.com/hnsol/movesense-chess.git
-cd movesense-chess
+git clone https://github.com/hnsol/thrie-raed-chess.git
+cd thrie-raed-chess
 uv sync
 ```
 
 ## Usage
 
 ```sh
-uv run python -m movesense
+uv run python -m thrie_raed_chess
 ```
 
 Or, after installing the package (`uv tool install .` or `pip install .`):
 
 ```sh
-movesense
+thrie-raed-chess
 ```
 
 ### Keys
@@ -64,10 +64,10 @@ uv run pytest
 
 ### Regenerating the bundled puzzles
 
-The puzzles in `movesense/data/puzzles.json` are extracted from the [Lichess puzzle database](https://database.lichess.org/#puzzles) (CC0):
+The puzzles in `thrie_raed_chess/data/puzzles.json` are extracted from the [Lichess puzzle database](https://database.lichess.org/#puzzles) (CC0):
 
 ```sh
-zstd -dc lichess_db_puzzle.csv.zst | uv run python tools/extract_lichess_puzzles.py movesense/data/puzzles.json
+zstd -dc lichess_db_puzzle.csv.zst | uv run python tools/extract_lichess_puzzles.py thrie_raed_chess/data/puzzles.json
 ```
 
 ## License

@@ -1,4 +1,4 @@
-# MoveSense Chess
+# Thrie Raed Chess
 
 *[English version](README.en.md)*
 
@@ -33,21 +33,21 @@
 [uv](https://docs.astral.sh/uv/) を使う場合:
 
 ```sh
-git clone https://github.com/hnsol/movesense-chess.git
-cd movesense-chess
+git clone https://github.com/hnsol/thrie-raed-chess.git
+cd thrie-raed-chess
 uv sync
 ```
 
 ## 使い方
 
 ```sh
-uv run python -m movesense
+uv run python -m thrie_raed_chess
 ```
 
 パッケージとしてインストール（`uv tool install .` または `pip install .`）した場合:
 
 ```sh
-movesense
+thrie-raed-chess
 ```
 
 ### キー操作
@@ -64,10 +64,10 @@ uv run pytest
 
 ### 同梱パズルの再生成
 
-`movesense/data/puzzles.json` は [Lichess パズルデータベース](https://database.lichess.org/#puzzles)（CC0）から抽出しています:
+`thrie_raed_chess/data/puzzles.json` は [Lichess パズルデータベース](https://database.lichess.org/#puzzles)（CC0）から抽出しています:
 
 ```sh
-zstd -dc lichess_db_puzzle.csv.zst | uv run python tools/extract_lichess_puzzles.py movesense/data/puzzles.json
+zstd -dc lichess_db_puzzle.csv.zst | uv run python tools/extract_lichess_puzzles.py thrie_raed_chess/data/puzzles.json
 ```
 
 ## ライセンス

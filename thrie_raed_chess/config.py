@@ -1,7 +1,7 @@
 import os
 import shutil
 
-APP_NAME = "MoveSense Chess"
+APP_NAME = "Thrie Raed Chess"
 
 
 # Stockfish の場所を自動探索(PATH → よくある場所)。見つからなければ手動指定。

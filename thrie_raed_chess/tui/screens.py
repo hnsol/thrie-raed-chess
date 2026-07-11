@@ -7,17 +7,17 @@ from textual.containers import Horizontal
 from textual.screen import ModalScreen, Screen
 from textual.widgets import Footer, Header, Input, Static
 
-from movesense.boardmodel import (
+from thrie_raed_chess.boardmodel import (
     choice_model,
     lastmove_model,
     piece_glyph,
     puzzle_result_model,
     result_model,
 )
-from movesense.config import APP_NAME, KEYS, find_stockfish
-from movesense.puzzles import PUZZLES, find_puzzle_by_id, get_puzzles_by_difficulty, mate_label
-from movesense.review import copy_to_clipboard, game_review_text
-from movesense.session import (
+from thrie_raed_chess.config import KEYS, find_stockfish
+from thrie_raed_chess.puzzles import PUZZLES, find_puzzle_by_id, get_puzzles_by_difficulty, mate_label
+from thrie_raed_chess.review import copy_to_clipboard, game_review_text
+from thrie_raed_chess.session import (
     BattlePhase,
     BattleSession,
     PuzzlePhase,
@@ -26,6 +26,7 @@ from movesense.session import (
 )
 
 from . import theme
+from .logo import logo_text
 from .widgets import BoardWidget, SidePanel
 
 LABELS = {
@@ -47,8 +48,8 @@ class MenuScreen(Screen):
 
     def compose(self):
         yield Header()
+        yield Static(logo_text(), id="menu-logo")
         yield Static(
-            f"=== {APP_NAME} ===\n\n"
             "モード選択\n\n"
             "j  対戦モード\n"
             "k  詰めチェス\n"

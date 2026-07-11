@@ -4,7 +4,7 @@
 (症状②のプレビュー強調)を追加する。
 """
 
-from movesense.boardmodel import CellRole
+from thrie_raed_chess.boardmodel import CellRole
 
 LIGHT_SQUARE_BG = "color(180)"
 DARK_SQUARE_BG = "color(101)"

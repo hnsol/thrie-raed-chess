@@ -6,13 +6,13 @@ import pytest
 from textual.app import App, ComposeResult
 from textual.widgets import Input
 
-from movesense.boardmodel import choice_model, lastmove_model
-from movesense.config import KEYS
-from movesense.puzzles import PUZZLES
-from movesense.session import BattlePhase, PuzzlePhase
-from movesense.stats import BattleStats
-from movesense.tui.app import MoveSenseApp
-from movesense.tui.screens import (
+from thrie_raed_chess.boardmodel import choice_model, lastmove_model
+from thrie_raed_chess.config import KEYS
+from thrie_raed_chess.puzzles import PUZZLES
+from thrie_raed_chess.session import BattlePhase, PuzzlePhase
+from thrie_raed_chess.stats import BattleStats
+from thrie_raed_chess.tui.app import ThrieRaedChessApp
+from thrie_raed_chess.tui.screens import (
     BattleScreen,
     MenuScreen,
     PuzzleDifficultyScreen,
@@ -22,9 +22,9 @@ from movesense.tui.screens import (
     _choice_line,
     _puzzle_choice_line,
 )
-from movesense.tui import theme
-from movesense.tui import glyphs
-from movesense.tui.widgets import BoardWidget, SidePanel, _square_visual
+from thrie_raed_chess.tui import theme
+from thrie_raed_chess.tui import glyphs
+from thrie_raed_chess.tui.widgets import BoardWidget, SidePanel, _square_visual
 
 
 EVALUATED = [
@@ -51,9 +51,9 @@ class FakeEngine:
 
 def _stub_battle_evaluation(monkeypatch, evaluated=None, position_eval="White +0.1"):
     monkeypatch.setattr(
-        "movesense.session.evaluate_all_moves", lambda engine, board: evaluated or EVALUATED
+        "thrie_raed_chess.session.evaluate_all_moves", lambda engine, board: evaluated or EVALUATED
     )
-    monkeypatch.setattr("movesense.session.evaluate_position", lambda engine, board: position_eval)
+    monkeypatch.setattr("thrie_raed_chess.session.evaluate_position", lambda engine, board: position_eval)
     import random
 
     monkeypatch.setattr(random, "shuffle", lambda items: None)
@@ -235,17 +235,17 @@ async def test_side_panel_stats_body_reflects_battle_stats():
 
 @pytest.mark.asyncio
 async def test_menu_screen_shows_title_and_options():
-    app = MoveSenseApp()
+    app = ThrieRaedChessApp()
     async with app.run_test() as pilot:
+        assert app.screen.query_one("#menu-logo")
         body = str(app.screen.query_one("#menu-body").render())
-        assert "MoveSense Chess" in body
         assert "対戦モード" in body
         assert "詰めチェス" in body
 
 
 @pytest.mark.asyncio
 async def test_q_quits_the_app():
-    app = MoveSenseApp()
+    app = ThrieRaedChessApp()
     async with app.run_test() as pilot:
         await pilot.press("q")
         await pilot.pause()
@@ -451,7 +451,7 @@ async def test_missing_stockfish_shows_error_status(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_menu_k_opens_puzzle_select_screen():
-    app = MoveSenseApp()
+    app = ThrieRaedChessApp()
     async with app.run_test() as pilot:
         await pilot.press("k")
         await pilot.pause()
@@ -460,7 +460,7 @@ async def test_menu_k_opens_puzzle_select_screen():
 
 @pytest.mark.asyncio
 async def test_puzzle_select_random_pushes_puzzle_screen_with_visible_choices():
-    app = MoveSenseApp()
+    app = ThrieRaedChessApp()
     async with app.run_test() as pilot:
         await pilot.press("k")
         await pilot.pause()
@@ -476,7 +476,7 @@ async def test_puzzle_select_random_pushes_puzzle_screen_with_visible_choices():
 
 @pytest.mark.asyncio
 async def test_puzzle_select_difficulty_picks_requested_mate_in():
-    app = MoveSenseApp()
+    app = ThrieRaedChessApp()
     async with app.run_test() as pilot:
         await pilot.press("k")  # メニュー -> パズル選択
         await pilot.pause()
@@ -493,7 +493,7 @@ async def test_puzzle_select_difficulty_picks_requested_mate_in():
 
 @pytest.mark.asyncio
 async def test_puzzle_select_by_number_finds_specific_puzzle():
-    app = MoveSenseApp()
+    app = ThrieRaedChessApp()
     async with app.run_test() as pilot:
         await pilot.press("k")
         await pilot.pause()
@@ -512,7 +512,7 @@ async def test_puzzle_select_by_number_finds_specific_puzzle():
 
 @pytest.mark.asyncio
 async def test_puzzle_number_screen_shows_error_for_unknown_id():
-    app = MoveSenseApp()
+    app = ThrieRaedChessApp()
     async with app.run_test() as pilot:
         await pilot.press("k")
         await pilot.pause()
@@ -650,7 +650,7 @@ async def test_puzzle_result_retry_creates_fresh_puzzle_screen():
 
 @pytest.mark.asyncio
 async def test_puzzle_result_another_returns_to_puzzle_select_screen():
-    app = MoveSenseApp()
+    app = ThrieRaedChessApp()
     async with app.run_test() as pilot:
         await pilot.press("k")  # Menu -> PuzzleSelect
         await pilot.pause()
@@ -666,7 +666,7 @@ async def test_puzzle_result_another_returns_to_puzzle_select_screen():
 
 @pytest.mark.asyncio
 async def test_puzzle_result_to_menu_returns_to_menu_screen():
-    app = MoveSenseApp()
+    app = ThrieRaedChessApp()
     async with app.run_test() as pilot:
         await pilot.press("k")
         await pilot.pause()
@@ -682,7 +682,7 @@ async def test_puzzle_result_to_menu_returns_to_menu_screen():
 
 @pytest.mark.asyncio
 async def test_puzzle_result_quit_exits_app():
-    app = MoveSenseApp()
+    app = ThrieRaedChessApp()
     async with app.run_test() as pilot:
         await pilot.press("k")
         await pilot.pause()

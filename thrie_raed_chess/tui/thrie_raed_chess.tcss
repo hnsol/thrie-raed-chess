@@ -2,6 +2,10 @@ Screen {
     background: $surface;
 }
 
+#menu-logo {
+    padding: 2 4 0 4;
+}
+
 #menu-body,
 #puzzle-select-body,
 #puzzle-difficulty-body,

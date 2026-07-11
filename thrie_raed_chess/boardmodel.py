@@ -1,7 +1,7 @@
 """升目の意味づけ(色付き表示の対象)を、実際の色の描画から切り離すモデル。
 
 square -> Cell の辞書を返す純関数群。Cell.role が「なぜこの升が強調されているか」を
-表し、実際の色決定は movesense/tui の Textual テーマが個別に行う。
+表し、実際の色決定は thrie_raed_chess/tui の Textual テーマが個別に行う。
 """
 
 from dataclasses import dataclass

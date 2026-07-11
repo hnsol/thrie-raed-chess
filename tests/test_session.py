@@ -4,8 +4,8 @@ import types
 import chess
 import pytest
 
-from movesense.puzzles import PUZZLES
-from movesense.session import (
+from thrie_raed_chess.puzzles import PUZZLES
+from thrie_raed_chess.session import (
     BattlePhase,
     BattleSession,
     PuzzlePhase,
@@ -22,8 +22,8 @@ EVALUATED = [
 
 
 def _stub_battle_evaluation(monkeypatch, evaluated=EVALUATED, position_eval="White +0.1"):
-    monkeypatch.setattr("movesense.session.evaluate_all_moves", lambda engine, board: evaluated)
-    monkeypatch.setattr("movesense.session.evaluate_position", lambda engine, board: position_eval)
+    monkeypatch.setattr("thrie_raed_chess.session.evaluate_all_moves", lambda engine, board: evaluated)
+    monkeypatch.setattr("thrie_raed_chess.session.evaluate_position", lambda engine, board: position_eval)
     monkeypatch.setattr(random, "shuffle", lambda items: None)
 
 
@@ -80,8 +80,8 @@ def test_apply_choice_that_delivers_checkmate_goes_straight_to_game_over(monkeyp
         board.push_san(san)
     mate_move = chess.Move.from_uci("d8h4")
     evaluated = [(mate_move, 0, "green")]
-    monkeypatch.setattr("movesense.session.evaluate_all_moves", lambda engine, board: evaluated)
-    monkeypatch.setattr("movesense.session.evaluate_position", lambda engine, board: "Black +9.0")
+    monkeypatch.setattr("thrie_raed_chess.session.evaluate_all_moves", lambda engine, board: evaluated)
+    monkeypatch.setattr("thrie_raed_chess.session.evaluate_position", lambda engine, board: "Black +9.0")
     monkeypatch.setattr(random, "shuffle", lambda items: None)
     session = BattleSession(board=board)
     session.prepare_choices(engine=None)

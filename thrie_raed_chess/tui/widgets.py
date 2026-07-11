@@ -4,7 +4,7 @@ from rich.style import Style
 from rich.text import Text
 from textual.widgets import RichLog, Static
 
-from movesense.stats import movement_help_lines
+from thrie_raed_chess.stats import movement_help_lines
 
 from . import glyphs, theme
 

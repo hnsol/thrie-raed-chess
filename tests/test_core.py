@@ -1,11 +1,11 @@
 import chess
 
-from movesense.boardmodel import CellRole, choice_model
-from movesense.evaluation import format_position_eval, pick_three
-from movesense.puzzles import PUZZLES, mate_label, pick_puzzle_three, puzzle_board
-from movesense.review import game_review_text
-from movesense.stats import BattleStats, movement_help_lines
-from movesense.tui import theme
+from thrie_raed_chess.boardmodel import CellRole, choice_model
+from thrie_raed_chess.evaluation import format_position_eval, pick_three
+from thrie_raed_chess.puzzles import PUZZLES, mate_label, pick_puzzle_three, puzzle_board
+from thrie_raed_chess.review import game_review_text
+from thrie_raed_chess.stats import BattleStats, movement_help_lines
+from thrie_raed_chess.tui import theme
 
 
 def test_bundled_puzzles_cover_mate_in_2_3_4_only():
@@ -23,7 +23,7 @@ def test_bundled_puzzles_cover_mate_in_2_3_4_only():
 
 
 def test_puzzle_three_choices_include_correct_move(monkeypatch):
-    monkeypatch.setattr("movesense.puzzles.random.shuffle", lambda items: None)
+    monkeypatch.setattr("thrie_raed_chess.puzzles.random.shuffle", lambda items: None)
     puzzle = [p for p in PUZZLES if p["mate_in"] == 2][0]
     board = puzzle_board(puzzle)
     correct = chess.Move.from_uci(puzzle["solution"][0])
@@ -96,7 +96,7 @@ def test_game_review_text_contains_pgn_and_llm_request():
 
     text = game_review_text(board, result="0-1", termination="White resigned")
 
-    assert '[Event "MoveSense Chess"]' in text
+    assert '[Event "Thrie Raed Chess"]' in text
     assert '[Result "0-1"]' in text
     assert '[Termination "White resigned"]' in text
     assert "1. e4 e5 0-1" in text
@@ -109,8 +109,8 @@ def test_movement_help_lines_are_short_enough_for_side_panel():
 
 
 def test_pick_three_always_includes_exact_best_move(monkeypatch):
-    monkeypatch.setattr("movesense.evaluation.random.choice", lambda items: items[-1])
-    monkeypatch.setattr("movesense.evaluation.random.shuffle", lambda items: None)
+    monkeypatch.setattr("thrie_raed_chess.evaluation.random.choice", lambda items: items[-1])
+    monkeypatch.setattr("thrie_raed_chess.evaluation.random.shuffle", lambda items: None)
     evaluated = [
         ("best", 0, "green"),
         ("also_good", 10, "green"),
