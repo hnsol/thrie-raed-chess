@@ -1,10 +1,23 @@
-# Thrie Raed Chess
+<p align="center">
+  <img src="docs/images/title-logo.png" alt="Thrie Raed Chess" width="640">
+</p>
 
-*[日本語版はこちら / Japanese version](README.md)*
+<p align="center">
+  A terminal (TUI) chess trainer for beginners — learn by choosing, not by searching<br>
+  <a href="README.md">日本語版はこちら / Japanese version</a>
+</p>
 
-A terminal (TUI) chess trainer for beginners: instead of finding moves from scratch, you learn by picking the best move out of **three choices**. Built with [Textual](https://textual.textualize.io/) and [python-chess](https://python-chess.readthedocs.io/).
+Instead of finding moves from scratch, you learn by picking the best move out of **three choices**. Built with [Textual](https://textual.textualize.io/) and [python-chess](https://python-chess.readthedocs.io/).
 
-## Screenshots
+## Features
+
+- **Battle mode** — play against a CPU opponent. On each of your turns, Stockfish proposes three candidate moves; pick one with a single key (`j` / `k` / `l`). Your choice is graded green (near-best), yellow, or red by centipawn loss, with running stats.
+- **Puzzle mode** — mate-in-2/3/4 puzzles from the Lichess puzzle database, presented as 3-choice quizzes.
+- **Game review export** — export the finished game as a PGN-based review prompt you can paste into an AI assistant.
+- Block-art chess pieces rendered right in your terminal.
+
+<details>
+<summary>Screenshots</summary>
 
 Battle mode (play a CPU and learn the best move via 3 choices)
 
@@ -14,16 +27,12 @@ Puzzle mode (find the mating sequence via 3 choices)
 
 ![Puzzle mode](docs/images/puzzle-mode.png)
 
-## Features
-
-- **Battle mode** — play against a CPU opponent. On each of your turns, Stockfish proposes three candidate moves; pick one with a single key (`j` / `k` / `l`). Your choice is graded green (near-best), yellow, or red by centipawn loss, with running stats.
-- **Puzzle mode** — mate-in-2/3/4 puzzles from the Lichess puzzle database, presented as 3-choice quizzes.
-- **Game review export** — export the finished game as a PGN-based review prompt you can paste into an AI assistant.
-- Block-art chess pieces rendered right in your terminal.
+</details>
 
 ## Requirements
 
 - Python 3.11+
+- Terminal: **80×30 or larger** recommended (80×24 works but pieces fall back to compact display)
 - [Stockfish](https://stockfishchess.org/) on your `PATH` (required for battle mode; puzzle mode works without it)
   - macOS: `brew install stockfish`
   - Debian/Ubuntu: `apt install stockfish`

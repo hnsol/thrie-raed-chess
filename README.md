@@ -1,10 +1,23 @@
-# Thrie Raed Chess
+<p align="center">
+  <img src="docs/images/title-logo.png" alt="Thrie Raed Chess" width="640">
+</p>
 
-*[English version](README.en.md)*
+<p align="center">
+  「3択で覚えるチェス」— ターミナル（TUI）で動くチェス初心者向けトレーナー<br>
+  <a href="README.en.md">English version</a>
+</p>
 
-「3択で覚えるチェス」— ターミナル（TUI）で動くチェス初心者向けトレーナーです。ゼロから指し手を考えるのではなく、**3つの候補手から選ぶ**ことで最善手の感覚を身につけます。[Textual](https://textual.textualize.io/) と [python-chess](https://python-chess.readthedocs.io/) 製。
+ゼロから指し手を考えるのではなく、**3つの候補手から選ぶ**ことで最善手の感覚を身につけます。[Textual](https://textual.textualize.io/) と [python-chess](https://python-chess.readthedocs.io/) 製。
 
-## スクリーンショット
+## 特徴
+
+- **対戦モード** — CPU と対局。自分の手番ごとに Stockfish が候補手を3つ提示し、`j` / `k` / `l` の1キーで選択。選んだ手はセンチポーン損失に応じて 緑（ほぼ最善）/ 黄 / 赤 で評価され、統計も表示されます。
+- **パズルモード** — Lichess パズルデータベース由来の 2手/3手/4手詰めを3択クイズで出題。
+- **対局レビュー出力** — 終局後、PGN 付きのレビュー用プロンプトを書き出して AI アシスタントに貼り付けられます。
+- ブロックアートの駒をターミナルにそのまま描画。
+
+<details>
+<summary>スクリーンショット</summary>
 
 対戦モード（CPU と対局し、3択で最善手を学ぶ）
 
@@ -14,16 +27,12 @@
 
 ![詰めチェスモード](docs/images/puzzle-mode.png)
 
-## 特徴
-
-- **対戦モード** — CPU と対局。自分の手番ごとに Stockfish が候補手を3つ提示し、`j` / `k` / `l` の1キーで選択。選んだ手はセンチポーン損失に応じて 緑（ほぼ最善）/ 黄 / 赤 で評価され、統計も表示されます。
-- **パズルモード** — Lichess パズルデータベース由来の 2手/3手/4手詰めを3択クイズで出題。
-- **対局レビュー出力** — 終局後、PGN 付きのレビュー用プロンプトを書き出して AI アシスタントに貼り付けられます。
-- ブロックアートの駒をターミナルにそのまま描画。
+</details>
 
 ## 動作要件
 
 - Python 3.11+
+- ターミナル: **80×30 以上**推奨（80×24 でも動作しますが駒が簡易表示になります）
 - [Stockfish](https://stockfishchess.org/)（対戦モードに必須。パズルモードは不要）
   - macOS: `brew install stockfish`
   - Debian/Ubuntu: `apt install stockfish`
