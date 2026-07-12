@@ -14,6 +14,7 @@ from thrie_raed_chess.boardmodel import (
     puzzle_result_model,
     result_model,
 )
+from thrie_raed_chess.coach import CoachCommenter
 from thrie_raed_chess.config import CPU_LEVELS, DEFAULT_CPU_LEVEL, KEYS, find_stockfish
 from thrie_raed_chess.puzzles import PUZZLES, find_puzzle_by_id, get_puzzles_by_difficulty, mate_label
 from thrie_raed_chess.review import copy_to_clipboard, game_review_text
@@ -214,6 +215,7 @@ class BattleScreen(Screen):
         self._flash_ticks_done = 0
         self._flashing = False
         self._game_over_displayed = False
+        self.coach = CoachCommenter()
 
     @staticmethod
     def _default_engine_factory():
@@ -347,9 +349,12 @@ class BattleScreen(Screen):
             )
             self._game_over_displayed = True
         else:
+            comment = self.coach.comment(
+                chosen.loss, chosen.color, chosen.facts, self.session.board
+            )
             self.query_one("#status-bar", Static).update(
-                f"あなたの手: {chosen.san}  {LABELS[chosen.color]}(差 {chosen.loss})  "
-                "─ キーでCPUの番へ ─"
+                f"{chosen.san} {LABELS[chosen.color]}(差 {chosen.loss})  {comment}"
+                "  ─ any key ─"
             )
 
     # ---- フラッシュ(共通) ---------------------------------------------------
