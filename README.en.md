@@ -32,7 +32,7 @@ Find the mating sequence via 3 choices:
 ## Requirements
 
 - Python 3.11+
-- Terminal: **80×30 or larger** recommended (80×24 works but pieces fall back to compact display)
+- Terminal: **92×30 or larger** recommended (smaller sizes work, but the side panel narrows and pieces fall back to compact display)
 - [Stockfish](https://stockfishchess.org/) on your `PATH` (required for battle mode; puzzle mode works without it)
   - macOS: `brew install stockfish`
   - Debian/Ubuntu: `apt install stockfish`

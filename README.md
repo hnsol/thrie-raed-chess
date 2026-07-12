@@ -32,7 +32,7 @@ CPU と対局し、3択で最善手を学ぶ:
 ## 動作要件
 
 - Python 3.11+
-- ターミナル: **80×30 以上**推奨（80×24 でも動作しますが駒が簡易表示になります）
+- ターミナル: **92×30 以上**推奨（それ未満でも動作しますが、サイドパネルが狭まったり駒が簡易表示になります）
 - [Stockfish](https://stockfishchess.org/)（対戦モードに必須。パズルモードは不要）
   - macOS: `brew install stockfish`
   - Debian/Ubuntu: `apt install stockfish`
