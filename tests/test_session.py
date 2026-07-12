@@ -112,6 +112,30 @@ def test_apply_cpu_move_pushes_engine_move_and_returns_to_human_choosing(monkeyp
     assert session.phase is BattlePhase.HUMAN_CHOOSING
 
 
+def test_apply_cpu_move_passes_session_skill_and_depth_to_engine():
+    board = chess.Board()
+    cpu_move = chess.Move.from_uci("e7e5")
+
+    class FakeEngine:
+        def __init__(self):
+            self.limit = None
+            self.options = None
+
+        def play(self, board, limit, options=None):
+            self.limit = limit
+            self.options = options
+            return types.SimpleNamespace(move=cpu_move)
+
+    engine = FakeEngine()
+    session = BattleSession(board=board, cpu_skill=15, cpu_depth=9)
+    session.phase = BattlePhase.REVEALED
+
+    session.apply_cpu_move(engine)
+
+    assert engine.limit.depth == 9
+    assert engine.options == {"Skill Level": 15}
+
+
 def test_resign_and_abandon_set_result_and_termination():
     session = BattleSession()
 

@@ -14,7 +14,7 @@ from thrie_raed_chess.boardmodel import (
     puzzle_result_model,
     result_model,
 )
-from thrie_raed_chess.config import KEYS, find_stockfish
+from thrie_raed_chess.config import CPU_LEVELS, DEFAULT_CPU_LEVEL, KEYS, find_stockfish
 from thrie_raed_chess.puzzles import PUZZLES, find_puzzle_by_id, get_puzzles_by_difficulty, mate_label
 from thrie_raed_chess.review import copy_to_clipboard, game_review_text
 from thrie_raed_chess.session import (
@@ -59,13 +59,48 @@ class MenuScreen(Screen):
         yield Footer()
 
     def action_battle(self):
-        self.app.push_screen(ColorSelectScreen())
+        self.app.push_screen(DifficultySelectScreen())
 
     def action_puzzle(self):
         self.app.push_screen(PuzzleSelectScreen())
 
     def action_quit(self):
         self.app.exit()
+
+
+_DIFFICULTY_KEYS = ["h", "j", "k", "l", ";"]  # 難易度0〜4に対応(CPU_LEVELS順)
+
+
+class DifficultySelectScreen(Screen):
+    """対戦前の難易度選択(5段階)。前回の選択を初期カーソルにする。"""
+
+    BINDINGS = [
+        ("h", "pick(0)", "入門"),
+        ("j", "pick(1)", "初級"),
+        ("k", "pick(2)", "中級"),
+        ("l", "pick(3)", "上級"),
+        ("semicolon", "pick(4)", "最強"),
+        ("q", "back", "戻る"),
+    ]
+
+    def compose(self):
+        yield Header()
+        current = self.app.cpu_level_idx
+        lines = ["難易度を選んでください\n"]
+        for idx, (name, skill, _depth) in enumerate(CPU_LEVELS):
+            mark = "→ " if idx == current else "  "
+            lines.append(f"{mark}{_DIFFICULTY_KEYS[idx]}) {name} (Skill {skill})")
+        lines.append("\nq  戻る")
+        yield Static("\n".join(lines), id="difficulty-select-body")
+        yield Footer()
+
+    def action_pick(self, idx):
+        self.app.cpu_level_idx = idx
+        self.app.pop_screen()
+        self.app.push_screen(ColorSelectScreen(level_idx=idx))
+
+    def action_back(self):
+        self.app.pop_screen()
 
 
 class ColorSelectScreen(Screen):
@@ -77,6 +112,10 @@ class ColorSelectScreen(Screen):
         ("l", "pick_black", "黒番"),
         ("q", "back", "戻る"),
     ]
+
+    def __init__(self, level_idx=DEFAULT_CPU_LEVEL, **kwargs):
+        super().__init__(**kwargs)
+        self.level_idx = level_idx
 
     def compose(self):
         yield Header()
@@ -92,7 +131,7 @@ class ColorSelectScreen(Screen):
 
     def _start_battle(self, color):
         self.app.pop_screen()
-        self.app.push_screen(BattleScreen(human_color=color))
+        self.app.push_screen(BattleScreen(human_color=color, level_idx=self.level_idx))
 
     def action_pick_random(self):
         self._start_battle(random.choice([chess.WHITE, chess.BLACK]))
@@ -161,10 +200,12 @@ class BattleScreen(Screen):
         ("q", "quit_battle", "終了"),
     ]
 
-    def __init__(self, human_color=chess.WHITE, engine_factory=None, **kwargs):
+    def __init__(self, human_color=chess.WHITE, engine_factory=None,
+                 level_idx=DEFAULT_CPU_LEVEL, **kwargs):
         super().__init__(**kwargs)
         self.human_color = human_color
-        self.session = BattleSession(human_color=human_color)
+        _name, skill, depth = CPU_LEVELS[level_idx]
+        self.session = BattleSession(human_color=human_color, cpu_skill=skill, cpu_depth=depth)
         self._engine_factory = engine_factory or self._default_engine_factory
         self.engine = None
         self._engine_shut_down = False

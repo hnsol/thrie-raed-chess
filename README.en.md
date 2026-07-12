@@ -11,7 +11,7 @@ Instead of finding moves from scratch, you learn by picking the best move out of
 
 ## Features
 
-- **Battle mode** — play against a CPU opponent. On each of your turns, Stockfish proposes three candidate moves; pick one with a single key (`j` / `k` / `l`). Your choice is graded green (near-best), yellow, or red by centipawn loss, with running stats.
+- **Battle mode** — play against a CPU opponent. Choose from five difficulty levels (Beginner, Novice, Intermediate, Advanced, Strongest) at the start with `h` / `j` / `k` / `l` / `;`. On each of your turns, Stockfish proposes three candidate moves; pick one with a single key (`j` / `k` / `l`). Your choice is graded green (near-best), yellow, or red by centipawn loss, with running stats.
 - **Puzzle mode** — mate-in-2/3/4 puzzles from the Lichess puzzle database, presented as 3-choice quizzes.
 - **Game review export** — export the finished game as a PGN-based review prompt you can paste into an AI assistant.
 - Block-art chess pieces rendered right in your terminal.

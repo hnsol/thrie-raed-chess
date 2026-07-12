@@ -11,7 +11,6 @@ from enum import Enum, auto
 import chess
 import chess.engine
 
-from .config import CPU_DEPTH, CPU_SKILL
 from .evaluation import evaluate_all_moves, evaluate_position, move_facts, pick_three
 from .puzzles import pick_puzzle_three, puzzle_board
 from .stats import BattleStats
@@ -49,10 +48,13 @@ def outcome_message(board, human_color=chess.WHITE):
 
 
 class BattleSession:
-    def __init__(self, board=None, stats=None, human_color=chess.WHITE):
+    def __init__(self, board=None, stats=None, human_color=chess.WHITE,
+                 cpu_skill=3, cpu_depth=6):
         self.board = board if board is not None else chess.Board()
         self.stats = stats if stats is not None else BattleStats()
         self.human_color = human_color
+        self.cpu_skill = cpu_skill      # 相手CPUの強さ 0(最弱)〜20(最強)
+        self.cpu_depth = cpu_depth      # 相手CPUの読みの深さ
         self.phase = BattlePhase.HUMAN_CHOOSING
         self.choices = []          # [(move, loss, color)]
         self.position_eval = "互角"
@@ -105,8 +107,8 @@ class BattleSession:
         """CPUの手番。指した手を返す。終局ならGAME_OVERへ。"""
         result = engine.play(
             self.board,
-            chess.engine.Limit(depth=CPU_DEPTH),
-            options={"Skill Level": CPU_SKILL},
+            chess.engine.Limit(depth=self.cpu_depth),
+            options={"Skill Level": self.cpu_skill},
         )
         move = result.move
         self.board.push(move)

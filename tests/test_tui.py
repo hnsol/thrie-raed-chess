@@ -14,6 +14,8 @@ from thrie_raed_chess.stats import BattleStats
 from thrie_raed_chess.tui.app import ThrieRaedChessApp
 from thrie_raed_chess.tui.screens import (
     BattleScreen,
+    ColorSelectScreen,
+    DifficultySelectScreen,
     MenuScreen,
     PuzzleDifficultyScreen,
     PuzzleNumberScreen,
@@ -447,6 +449,28 @@ async def test_missing_stockfish_shows_error_status(monkeypatch):
         await _wait_until(
             lambda: "Stockfish" in str(app.screen.query_one("#status-bar").render())
         )
+
+
+@pytest.mark.asyncio
+async def test_menu_battle_selects_max_difficulty_then_color_starts_strong_session(monkeypatch):
+    # 実 Stockfish 起動を避ける(engine_factory は None を返す)。
+    monkeypatch.setattr("thrie_raed_chess.tui.screens.find_stockfish", lambda: None)
+    app = ThrieRaedChessApp()
+    async with app.run_test() as pilot:
+        await pilot.press("j")  # メニュー -> 難易度選択
+        await pilot.pause()
+        assert isinstance(app.screen, DifficultySelectScreen)
+
+        await pilot.press(";")  # 最強(idx=4)
+        await pilot.pause()
+        assert isinstance(app.screen, ColorSelectScreen)
+        assert app.cpu_level_idx == 4
+
+        await pilot.press("k")  # 白番で対戦開始
+        await pilot.pause()
+        assert isinstance(app.screen, BattleScreen)
+        assert app.screen.session.cpu_skill == 20
+        assert app.screen.session.cpu_depth == 12
 
 
 @pytest.mark.asyncio
