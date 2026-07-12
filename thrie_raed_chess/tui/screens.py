@@ -376,6 +376,7 @@ class BattleScreen(Screen):
 
     # ---- CPUの手番 -----------------------------------------------------------
     def _start_cpu_turn(self):
+        self.session.begin_cpu_turn()
         self.query_one("#status-bar", Static).update("CPU考え中…")
         self.run_worker(self._cpu_worker, thread=True, exclusive=True, group="engine")
 

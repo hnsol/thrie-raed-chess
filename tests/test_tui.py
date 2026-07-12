@@ -1,4 +1,5 @@
 import asyncio
+import threading
 import types
 
 import chess
@@ -378,6 +379,54 @@ async def test_any_key_advances_from_revealed_phase(monkeypatch):
         await _wait_until(lambda: screen.last_cpu_move == cpu_move)
         await _wait_for_choices(app, timeout=3.0)
         assert screen.session.phase == BattlePhase.HUMAN_CHOOSING
+
+
+class BlockingEngine(FakeEngine):
+    """play() を threading.Event でブロックできるエンジン。CPU思考中の
+    キー再入を再現するために使う。"""
+
+    def __init__(self, cpu_move=None):
+        super().__init__(cpu_move=cpu_move)
+        self.release = threading.Event()
+        self.play_calls = 0
+
+    def play(self, board, limit, options=None):
+        self.play_calls += 1
+        self.release.wait(timeout=2)
+        return super().play(board, limit, options)
+
+
+@pytest.mark.asyncio
+async def test_rapid_keys_in_revealed_phase_trigger_only_one_cpu_move(monkeypatch):
+    _stub_battle_evaluation(monkeypatch)
+    cpu_move = chess.Move.from_uci("e7e5")
+    engine = BlockingEngine(cpu_move=cpu_move)
+    screen = BattleScreen(engine_factory=lambda: engine)
+    app = _BattleHarness(screen)
+    async with app.run_test() as pilot:
+        await _wait_for_choices(app)
+        await pilot.press("j")
+        await pilot.pause()
+        await pilot.press("j")
+        await _wait_until(lambda: not screen._flashing)
+        assert screen.session.phase == BattlePhase.REVEALED
+
+        # 1回目でCPU思考開始(play がブロック中)
+        await pilot.press("space")
+        await _wait_until(lambda: engine.play_calls == 1)
+        assert screen.session.phase == BattlePhase.CPU_THINKING
+        # 2回目のキーは思考中なので無視されるべき
+        await pilot.press("space")
+        await pilot.pause()
+
+        engine.release.set()
+        await _wait_for_choices(app, timeout=3.0)
+        await _wait_until(lambda: screen.session.phase == BattlePhase.HUMAN_CHOOSING)
+
+        assert engine.play_calls == 1
+        # 人間1手 + CPU1手 = 2
+        assert len(screen.session.board.move_stack) == 2
+        assert screen.session.board.move_stack[-1] == cpu_move
 
 
 @pytest.mark.asyncio

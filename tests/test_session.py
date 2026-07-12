@@ -136,6 +136,15 @@ def test_apply_cpu_move_passes_session_skill_and_depth_to_engine():
     assert engine.options == {"Skill Level": 15}
 
 
+def test_begin_cpu_turn_moves_phase_to_cpu_thinking():
+    session = BattleSession()
+    session.phase = BattlePhase.REVEALED
+
+    session.begin_cpu_turn()
+
+    assert session.phase is BattlePhase.CPU_THINKING
+
+
 def test_resign_and_abandon_set_result_and_termination():
     session = BattleSession()
 

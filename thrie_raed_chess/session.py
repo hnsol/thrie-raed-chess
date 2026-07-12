@@ -19,6 +19,7 @@ from .stats import BattleStats
 class BattlePhase(Enum):
     HUMAN_CHOOSING = auto()   # 3択を提示中(focused_idx でプレビュー強調も可)
     REVEALED = auto()         # 指した後、色/差/事実を開示中
+    CPU_THINKING = auto()     # CPU手番を起動済み(思考中。キー再入を防ぐ)
     GAME_OVER = auto()
 
 
@@ -102,6 +103,10 @@ class BattleSession:
         else:
             self.phase = BattlePhase.REVEALED
         return revealed
+
+    def begin_cpu_turn(self):
+        """CPU手番の開始宣言。ワーカー起動前にメインスレッドで呼び、キー再入を防ぐ。"""
+        self.phase = BattlePhase.CPU_THINKING
 
     def apply_cpu_move(self, engine):
         """CPUの手番。指した手を返す。終局ならGAME_OVERへ。"""
