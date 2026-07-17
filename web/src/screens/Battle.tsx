@@ -20,6 +20,9 @@ import {
 } from "../lib/session";
 import { moveFacts } from "../lib/evaluation";
 import { parseUci } from "../lib/puzzles";
+import { CoachCommenter } from "../lib/coach";
+import { gameReviewText, shareOrCopy } from "../lib/review";
+import CoachBubble from "../components/CoachBubble";
 import { CPU_LEVELS } from "../config";
 import type { UciClient } from "../engine/uci-client";
 import "./Battle.css";
@@ -64,6 +67,11 @@ export default function Battle({
   }
   const session = sessionRef.current;
 
+  // コーチも1回だけ生成(履歴回避 deque を保持するため使い回す)。
+  const coachRef = useRef<CoachCommenter | null>(null);
+  if (coachRef.current === null) coachRef.current = new CoachCommenter();
+  const coach = coachRef.current;
+
   const flip = humanColor === "b";
   const [, setTick] = useState(0);
   const rerender = () => setTick((t) => t + 1);
@@ -72,6 +80,9 @@ export default function Battle({
   const [analyzeDepth, setAnalyzeDepth] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<RevealedChoice[] | null>(null);
+  const [coachComment, setCoachComment] = useState<string | null>(null);
+  const [reviewFeedback, setReviewFeedback] = useState<string | null>(null);
+  const [manualReviewText, setManualReviewText] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
   // 直前に盤を動かしたのが人間か CPU か(終局ハイライトの判定用)。
   const lastMoverRef = useRef<"human" | "cpu" | null>(null);
@@ -83,6 +94,7 @@ export default function Battle({
     setAnalyzing(true);
     setAnalyzeDepth(0);
     setRevealed(null);
+    setCoachComment(null);
     try {
       await session.prepareChoices(client, (depth) => {
         if (!cancelledRef.current) setAnalyzeDepth(depth);
@@ -148,6 +160,15 @@ export default function Battle({
       const rev = session.applyChoice(idx);
       lastMoverRef.current = "human";
       setRevealed(rev);
+      // 終局でなければ、指した手にコーチコメントを付ける(TUI と同じタイミング)。
+      if (session.phase === BattlePhase.REVEALED) {
+        const chosen = rev[idx];
+        setCoachComment(
+          coach.comment(chosen.loss, chosen.color, chosen.facts, session.board),
+        );
+      } else {
+        setCoachComment(null);
+      }
       rerender();
     } else {
       session.focus(idx);
@@ -165,6 +186,24 @@ export default function Battle({
     if (session.isGameOver()) return;
     session.resign();
     rerender();
+  }
+
+  // レビュー用プロンプトを共有/コピー(share → clipboard → textarea)。
+  async function handleShareReview() {
+    const text = gameReviewText(session.board, {
+      result: session.result,
+      termination: session.termination,
+      humanColor,
+    });
+    const outcome = await shareOrCopy(text);
+    setReviewFeedback(
+      outcome === "shared"
+        ? "共有しました"
+        : outcome === "copied"
+          ? "コピーしました"
+          : "自動コピーできませんでした。表示されたテキストを手動でコピーしてください。",
+    );
+    setManualReviewText(outcome === "manual" ? text : null);
   }
 
   // 盤ハイライトモデル。
@@ -229,6 +268,8 @@ export default function Battle({
 
       <Board fen={session.board.fen()} roles={roles} flip={flip} />
 
+      {!gameOver && <CoachBubble comment={coachComment} />}
+
       {error && <p className="battle__error">エラー: {error}</p>}
 
       {/* 状況に応じた下部 UI */}
@@ -252,7 +293,28 @@ export default function Battle({
               <dd>{summary.avgLoss}</dd>
             </div>
           </dl>
-          <button className="battle__primary" type="button" onClick={onExit}>
+          <button
+            className="battle__primary"
+            type="button"
+            onClick={handleShareReview}
+          >
+            レビュー用プロンプトを共有/コピー
+          </button>
+          {reviewFeedback && (
+            <div className="battle__review-feedback" role="status">
+              {reviewFeedback}
+            </div>
+          )}
+          {manualReviewText !== null && (
+            <textarea
+              className="battle__review-text"
+              readOnly
+              value={manualReviewText}
+              rows={8}
+              onFocus={(e) => e.currentTarget.select()}
+            />
+          )}
+          <button className="battle__back" type="button" onClick={onExit}>
             メニューへ
           </button>
         </div>

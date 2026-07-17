@@ -201,6 +201,22 @@
   opacity: 0.7;
   letter-spacing: 0.05em;
 }
+.battle__review-feedback {
+  font-size: 0.85rem;
+  color: #7ee0a0;
+  font-weight: 600;
+}
+.battle__review-text {
+  width: 100%;
+  font-size: 0.8rem;
+  font-family: monospace;
+  background: #26262c;
+  color: #e6e6ea;
+  border: 1px solid #3a3a42;
+  border-radius: 6px;
+  padding: 8px;
+  resize: vertical;
+}
 
 /* 統計 */
 .battle__stats {
