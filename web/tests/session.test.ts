@@ -1,7 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { PuzzleSession, PuzzlePhase } from "../src/lib/session";
+import { Chess } from "chess.js";
+import {
+  PuzzleSession,
+  PuzzlePhase,
+  BattleSession,
+  BattlePhase,
+} from "../src/lib/session";
 import { mulberry32 } from "../src/lib/rng";
 import type { Puzzle } from "../src/lib/puzzles";
+import type { PvLine, UciClient } from "../src/engine/uci-client";
 
 // 手作りの詰み局面(実データ非依存)。
 const MATE_IN_1: Puzzle = {
@@ -90,5 +97,110 @@ describe("PuzzleSession", () => {
     const s = new PuzzleSession(MATE_IN_1, mulberry32(1));
     s.abandon();
     expect(s.phase).toBe(PuzzlePhase.ABORTED);
+  });
+});
+
+// ── BattleSession ─────────────────────────────────────────────
+
+function pv(multipv: number, cp: number, firstUci: string): PvLine {
+  return { multipv, depth: 12, cpPov: cp, matePov: null, pv: [firstUci] };
+}
+
+// analyse / bestMove を差し替えたフェイククライアント。
+function fakeClient(opts: {
+  lines?: PvLine[];
+  bestMove?: string;
+}): UciClient {
+  return {
+    analyse: async () => opts.lines ?? [],
+    bestMove: async () => opts.bestMove ?? "",
+  } as unknown as UciClient;
+}
+
+describe("BattleSession", () => {
+  it("初期状態は HUMAN_CHOOSING", () => {
+    const s = new BattleSession();
+    expect(s.phase).toBe(BattlePhase.HUMAN_CHOOSING);
+    expect(s.result).toBe("*");
+  });
+
+  it("prepareChoices → applyChoice(非終局) → REVEALED、reveal 内容が一致", async () => {
+    const fen = "4k3/8/8/8/8/8/8/4K2R w K - 0 1";
+    const s = new BattleSession({ board: new Chess(fen), rng: mulberry32(7) });
+    const lines = [
+      pv(1, 300, "h1h8"), // best
+      pv(2, 280, "e1e2"), // loss 20 -> green
+      pv(3, 150, "h1h2"), // loss 150 -> yellow
+      pv(4, 100, "e1f2"), // loss 200 -> red
+    ];
+    const choices = await s.prepareChoices(fakeClient({ lines }));
+    expect(choices.length).toBeGreaterThanOrEqual(1);
+    expect(choices.length).toBeLessThanOrEqual(3);
+    expect(typeof s.positionEval).toBe("string");
+
+    const revealed = s.applyChoice(0);
+    expect(revealed).toHaveLength(choices.length);
+    expect(revealed[0].isChosen).toBe(true);
+    for (let i = 1; i < revealed.length; i++) {
+      expect(revealed[i].isChosen).toBe(false);
+    }
+    // reveal の loss/color は choices と一致。
+    revealed.forEach((r, i) => {
+      expect(r.loss).toBe(choices[i].loss);
+      expect(r.color).toBe(choices[i].color);
+      expect(Array.isArray(r.facts)).toBe(true);
+    });
+    expect(s.phase).toBe(BattlePhase.REVEALED);
+    expect(s.chosenIdx).toBe(0);
+    expect(s.stats.moves).toBe(1);
+  });
+
+  it("applyChoice でチェックメイト → GAME_OVER, 結果 1-0", async () => {
+    const fen = "6k1/5ppp/8/8/8/8/8/4R2K w - - 0 1";
+    const s = new BattleSession({ board: new Chess(fen), rng: mulberry32(1) });
+    // e1e8 を best(mate 相当)にする。
+    const lines = [pv(1, 9995, "e1e8"), pv(2, 0, "h1g1"), pv(3, -50, "h1g2")];
+    await s.prepareChoices(fakeClient({ lines }));
+    const idx = s.choices.findIndex((c) => c.uci === "e1e8");
+    expect(idx).toBeGreaterThanOrEqual(0); // best は必ず choices に含まれる
+    s.applyChoice(idx);
+    expect(s.phase).toBe(BattlePhase.GAME_OVER);
+    expect(s.result).toBe("1-0");
+    expect(s.outcomeMessage()).toContain("あなた");
+  });
+
+  it("beginCpuTurn → CPU_THINKING、applyCpuMove(非終局) → HUMAN_CHOOSING", async () => {
+    const fen = "4k3/8/8/8/8/8/8/4K2R b K - 0 1";
+    const s = new BattleSession({ board: new Chess(fen) });
+    s.beginCpuTurn();
+    expect(s.phase).toBe(BattlePhase.CPU_THINKING);
+    const uci = await s.applyCpuMove(fakeClient({ bestMove: "e8d8" }));
+    expect(uci).toBe("e8d8");
+    expect(s.phase).toBe(BattlePhase.HUMAN_CHOOSING);
+  });
+
+  it("CPU の手でステイルメイト → GAME_OVER 引き分け", async () => {
+    // 黒番。黒が指すと白がステイルメイト。
+    const fen = "K7/8/2q5/8/8/8/8/k7 b - - 0 1";
+    const s = new BattleSession({ board: new Chess(fen), humanColor: "w" });
+    s.beginCpuTurn();
+    await s.applyCpuMove(fakeClient({ bestMove: "c6c7" }));
+    expect(s.phase).toBe(BattlePhase.GAME_OVER);
+    expect(s.result).toBe("1/2-1/2");
+  });
+
+  it("resign: 白番なら 0-1", () => {
+    const s = new BattleSession({ humanColor: "w" });
+    s.resign();
+    expect(s.phase).toBe(BattlePhase.GAME_OVER);
+    expect(s.result).toBe("0-1");
+    expect(s.termination).toBe("White resigned");
+  });
+
+  it("resign: 黒番なら 1-0", () => {
+    const s = new BattleSession({ humanColor: "b" });
+    s.resign();
+    expect(s.result).toBe("1-0");
+    expect(s.termination).toBe("Black resigned");
   });
 });

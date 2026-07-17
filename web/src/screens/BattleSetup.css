@@ -1,0 +1,90 @@
+.bsetup__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bsetup__label {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.bsetup__levels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bsetup__level {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 2px solid #3a3a42;
+  background: #26262d;
+  color: #e6e6ea;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.bsetup__level--on {
+  border-color: #3a5cff;
+  background: #2a3252;
+}
+.bsetup__level-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.bsetup__level-sub {
+  font-size: 0.75rem;
+  opacity: 0.65;
+}
+
+.bsetup__sides {
+  display: flex;
+  gap: 8px;
+}
+.bsetup__side {
+  flex: 1;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 2px solid #3a3a42;
+  background: #26262d;
+  color: #e6e6ea;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.bsetup__side--on {
+  border-color: #3a5cff;
+  background: #2a3252;
+}
+
+.bsetup__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bsetup__start {
+  min-height: 56px;
+  border-radius: 12px;
+  border: none;
+  background: #3a5cff;
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.bsetup__back {
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid #3a3a42;
+  background: #26262d;
+  color: #c9c9d1;
+  font-size: 0.95rem;
+  cursor: pointer;
+}

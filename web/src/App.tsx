@@ -1,18 +1,30 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import PuzzleSelect from "./screens/PuzzleSelect";
 import Puzzle from "./screens/Puzzle";
 import EngineDebug from "./screens/EngineDebug";
+import BattleSetup from "./screens/BattleSetup";
+import Battle from "./screens/Battle";
 import { getPuzzlesByDifficulty, type Puzzle as PuzzleData } from "./lib/puzzles";
 import { defaultRng } from "./lib/rng";
+import type { Color } from "./lib/session";
+import { UciClient } from "./engine/uci-client";
 import { APP_NAME } from "./config";
 import "./App.css";
 
-type Screen = "menu" | "puzzle-select" | "puzzle" | "engine-debug";
+type Screen =
+  | "menu"
+  | "battle-setup"
+  | "battle"
+  | "puzzle-select"
+  | "puzzle"
+  | "engine-debug";
 
 function Menu({
+  onBattle,
   onPuzzle,
   onEngineDebug,
 }: {
+  onBattle: () => void;
   onPuzzle: () => void;
   onEngineDebug: () => void;
 }) {
@@ -24,9 +36,8 @@ function Menu({
       </header>
 
       <nav className="menu">
-        <button className="menu__btn" type="button" disabled>
+        <button className="menu__btn" type="button" onClick={onBattle}>
           対戦
-          <span className="menu__badge">未実装</span>
         </button>
         <button className="menu__btn" type="button" onClick={onPuzzle}>
           詰めチェス
@@ -51,10 +62,31 @@ function Menu({
 export default function App() {
   const [screen, setScreen] = useState<Screen>("menu");
   const [puzzle, setPuzzle] = useState<PuzzleData | null>(null);
+  const [battleCfg, setBattleCfg] = useState<{
+    level: number;
+    humanColor: Color;
+    key: number;
+  } | null>(null);
+
+  // エンジンは画面間で 1 個の Worker を再利用する(スペック準拠)。
+  const clientRef = useRef<UciClient | null>(null);
+  function getClient(): UciClient {
+    if (!clientRef.current) clientRef.current = new UciClient();
+    return clientRef.current;
+  }
 
   function start(p: PuzzleData) {
     setPuzzle(p);
     setScreen("puzzle");
+  }
+
+  function startBattle(level: number, humanColor: Color) {
+    setBattleCfg((prev) => ({
+      level,
+      humanColor,
+      key: (prev?.key ?? 0) + 1,
+    }));
+    setScreen("battle");
   }
 
   // もう一問: 現在の問題と同じ難易度からランダムに次を出題。
@@ -65,6 +97,29 @@ export default function App() {
     const next = pool[Math.floor(defaultRng() * pool.length)];
     setPuzzle(next);
     setScreen("puzzle");
+  }
+
+  if (screen === "battle-setup") {
+    return (
+      <BattleSetup
+        onStart={startBattle}
+        onBack={() => setScreen("menu")}
+      />
+    );
+  }
+
+  if (screen === "battle" && battleCfg) {
+    return (
+      <div className="app">
+        <Battle
+          key={battleCfg.key}
+          client={getClient()}
+          cpuLevelIndex={battleCfg.level}
+          humanColor={battleCfg.humanColor}
+          onExit={() => setScreen("menu")}
+        />
+      </div>
+    );
   }
 
   if (screen === "puzzle" && puzzle) {
@@ -93,6 +148,7 @@ export default function App() {
 
   return (
     <Menu
+      onBattle={() => setScreen("battle-setup")}
       onPuzzle={() => setScreen("puzzle-select")}
       onEngineDebug={() => setScreen("engine-debug")}
     />
