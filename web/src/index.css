@@ -32,4 +32,9 @@ body {
 button {
   font: inherit;
   color: inherit;
+  /* タップ遅延の除去と誤選択防止(モバイル徹底)。 */
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }

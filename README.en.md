@@ -29,6 +29,27 @@ Find the mating sequence via 3 choices:
 
 ![Puzzle mode](docs/images/puzzle-mode.png)
 
+## Web version (mobile-friendly)
+
+A browser-based version with a mobile-optimized UI is available:
+
+**▶ https://hnsol.github.io/thrie-raed-chess/**
+
+- **No install** — just open it in a browser. Works on iOS / Android
+- **PWA** — add it to your home screen to launch it like an app
+- **Offline-capable** — once loaded, it plays without a network connection
+- **Engine included** — Stockfish (WebAssembly) is bundled; no separate install needed
+
+### Local development
+
+Requires Node.js 18+.
+
+```sh
+cd web
+npm install
+npm run dev
+```
+
 ## Requirements
 
 - Python 3.11+

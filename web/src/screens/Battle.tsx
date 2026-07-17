@@ -78,6 +78,8 @@ export default function Battle({
 
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeDepth, setAnalyzeDepth] = useState(0);
+  // エンジン(WASM)起動中フラグ。init 完了までローディングを出す。
+  const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<RevealedChoice[] | null>(null);
   const [coachComment, setCoachComment] = useState<string | null>(null);
@@ -134,10 +136,14 @@ export default function Battle({
       try {
         await client.init();
       } catch (e) {
-        if (!cancelledRef.current) setError((e as Error).message);
+        if (!cancelledRef.current) {
+          setError((e as Error).message);
+          setInitializing(false);
+        }
         return;
       }
       if (cancelledRef.current) return;
+      setInitializing(false);
       // 人間が後手(手番でない)なら CPU が先に指す。
       if (session.humanColor !== session.board.turn()) {
         await runCpuTurn();
@@ -158,6 +164,8 @@ export default function Battle({
     if (phase !== BattlePhase.HUMAN_CHOOSING || analyzing) return;
     if (session.focusedIdx === idx) {
       const rev = session.applyChoice(idx);
+      // 開示のフィードバックとして短く振動(未対応/iOS では自動的に no-op)。
+      navigator.vibrate?.(15);
       lastMoverRef.current = "human";
       setRevealed(rev);
       // 終局でなければ、指した手にコーチコメントを付ける(TUI と同じタイミング)。
@@ -268,12 +276,30 @@ export default function Battle({
 
       <Board fen={session.board.fen()} roles={roles} flip={flip} />
 
-      {!gameOver && <CoachBubble comment={coachComment} />}
-
-      {error && <p className="battle__error">エラー: {error}</p>}
+      {!gameOver && !error && <CoachBubble comment={coachComment} />}
 
       {/* 状況に応じた下部 UI */}
-      {gameOver ? (
+      {error ? (
+        <div className="battle__error" role="alert">
+          <div className="battle__error-title">
+            エンジンを起動できませんでした
+          </div>
+          <p className="battle__error-detail">{error}</p>
+          <p className="battle__error-hint">
+            通信環境を確認して再度お試しください。
+            <br />
+            パズルモードはエンジン不要で遊べます。
+          </p>
+          <button className="battle__back" type="button" onClick={onExit}>
+            メニューへ
+          </button>
+        </div>
+      ) : initializing ? (
+        <div className="battle__thinking">
+          <span className="battle__spinner" aria-hidden="true" />
+          エンジンを起動しています…
+        </div>
+      ) : gameOver ? (
         <div className="battle__over">
           <div className="battle__over-msg">{session.outcomeMessage()}</div>
           <div className="battle__over-result">{session.result}</div>
@@ -384,7 +410,7 @@ export default function Battle({
         </div>
       )}
 
-      {!gameOver && (
+      {!gameOver && !error && !initializing && (
         <div className="battle__foot">
           <button
             className="battle__stats-toggle"

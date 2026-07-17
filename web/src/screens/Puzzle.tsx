@@ -55,6 +55,8 @@ export function Puzzle({ puzzle, onAnother, onBack }: PuzzleProps) {
     if (finished || phase !== PuzzlePhase.CHOOSING) return;
     if (session.focusedIdx === idx) {
       session.applyChoice(idx);
+      // 開示のフィードバックとして短く振動(未対応/iOS では自動的に no-op)。
+      navigator.vibrate?.(15);
     } else {
       session.focus(idx);
     }

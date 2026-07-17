@@ -45,8 +45,6 @@ function Menu({
       </nav>
 
       <footer className="app__footer">
-        M2: パズルモード
-        <br />
         <button
           type="button"
           className="app__debug-link"

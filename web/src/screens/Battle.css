@@ -50,10 +50,33 @@
 }
 
 .battle__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   margin: 0;
-  color: #ff9a9a;
-  font-size: 0.85rem;
+  padding: 16px;
+  border: 1px solid #5a2a2a;
+  border-radius: 12px;
+  background: rgba(120, 40, 40, 0.18);
   text-align: center;
+}
+.battle__error-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ff9a9a;
+}
+.battle__error-detail {
+  margin: 0;
+  font-size: 0.72rem;
+  opacity: 0.6;
+  word-break: break-word;
+}
+.battle__error-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--fg);
 }
 
 /* 3択 */
