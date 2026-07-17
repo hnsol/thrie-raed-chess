@@ -4,9 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "copy-puzzles": "node scripts/copy-puzzles.mjs",
+    "predev": "node scripts/copy-puzzles.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/copy-puzzles.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "pretest": "node scripts/copy-puzzles.mjs",
     "test": "vitest run"
   },
   "dependencies": {

@@ -1,31 +1,14 @@
-import { useMemo } from "react";
-import { Chess } from "chess.js";
-import Board from "./components/Board";
-import { choiceModel, Choice } from "./lib/boardmodel";
+import { useState } from "react";
+import PuzzleSelect from "./screens/PuzzleSelect";
+import Puzzle from "./screens/Puzzle";
+import { getPuzzlesByDifficulty, type Puzzle as PuzzleData } from "./lib/puzzles";
+import { defaultRng } from "./lib/rng";
 import { APP_NAME } from "./config";
 import "./App.css";
 
-// 開発確認用のデモ: 初期局面に3択候補のハイライトを重ねる。
-function BoardDemo() {
-  const { fen, roles } = useMemo(() => {
-    const chess = new Chess(); // 初期局面
-    const choices: Choice[] = [
-      { move: { from: "e2", to: "e4" } },
-      { move: { from: "g1", to: "f3" } },
-      { move: { from: "d2", to: "d4" } },
-    ];
-    return { fen: chess.fen(), roles: choiceModel(chess, choices) };
-  }, []);
+type Screen = "menu" | "puzzle-select" | "puzzle";
 
-  return (
-    <section className="demo">
-      <h2 className="demo__title">Board デモ（3択ハイライト）</h2>
-      <Board fen={fen} roles={roles} />
-    </section>
-  );
-}
-
-export default function App() {
+function Menu({ onPuzzle }: { onPuzzle: () => void }) {
   return (
     <div className="app">
       <header className="app__header">
@@ -38,15 +21,54 @@ export default function App() {
           対戦
           <span className="menu__badge">未実装</span>
         </button>
-        <button className="menu__btn" type="button" disabled>
+        <button className="menu__btn" type="button" onClick={onPuzzle}>
           詰めチェス
-          <span className="menu__badge">未実装</span>
         </button>
       </nav>
 
-      <BoardDemo />
-
-      <footer className="app__footer">M1: 基盤スキャフォールド</footer>
+      <footer className="app__footer">M2: パズルモード</footer>
     </div>
   );
+}
+
+export default function App() {
+  const [screen, setScreen] = useState<Screen>("menu");
+  const [puzzle, setPuzzle] = useState<PuzzleData | null>(null);
+
+  function start(p: PuzzleData) {
+    setPuzzle(p);
+    setScreen("puzzle");
+  }
+
+  // もう一問: 現在の問題と同じ難易度からランダムに次を出題。
+  async function another() {
+    if (!puzzle) return;
+    const pool = await getPuzzlesByDifficulty(puzzle.mate_in);
+    if (pool.length === 0) return;
+    const next = pool[Math.floor(defaultRng() * pool.length)];
+    setPuzzle(next);
+    setScreen("puzzle");
+  }
+
+  if (screen === "puzzle" && puzzle) {
+    return (
+      <div className="app">
+        <Puzzle
+          puzzle={puzzle}
+          onAnother={another}
+          onBack={() => setScreen("puzzle-select")}
+        />
+      </div>
+    );
+  }
+
+  if (screen === "puzzle-select") {
+    return (
+      <div className="app">
+        <PuzzleSelect onStart={start} onBack={() => setScreen("menu")} />
+      </div>
+    );
+  }
+
+  return <Menu onPuzzle={() => setScreen("puzzle-select")} />;
 }

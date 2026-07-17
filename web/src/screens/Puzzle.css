@@ -1,0 +1,132 @@
+.puzzle {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.puzzle__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.puzzle__back {
+  background: none;
+  border: none;
+  color: #c9c9d1;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.puzzle__meta {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.puzzle__mate {
+  font-weight: 700;
+  font-size: 1rem;
+}
+.puzzle__rating {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.puzzle__prompt {
+  margin: 0;
+  text-align: center;
+  font-size: 0.95rem;
+  min-height: 1.4em;
+}
+
+.puzzle__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pchoice {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 16px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  color: #0e0e12;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+/* Board.css の choice-0/1/2 と同色系(teal / blue / orange)。 */
+.pchoice--0 {
+  background: rgba(80, 200, 170, 0.85);
+}
+.pchoice--1 {
+  background: rgba(90, 150, 240, 0.85);
+}
+.pchoice--2 {
+  background: rgba(240, 160, 70, 0.85);
+}
+.pchoice--focused {
+  border-color: #ffd34d;
+  box-shadow: 0 0 0 2px rgba(255, 211, 77, 0.5);
+}
+.pchoice__san {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.pchoice__sub {
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+.puzzle__result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.puzzle__banner {
+  text-align: center;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.puzzle__banner--success {
+  background: rgba(70, 200, 110, 0.22);
+  color: #6ff0a0;
+  border: 1px solid rgba(70, 200, 110, 0.5);
+}
+.puzzle__banner--miss,
+.puzzle__banner--fail {
+  background: rgba(240, 90, 90, 0.18);
+  color: #ff9a9a;
+  border: 1px solid rgba(240, 90, 90, 0.5);
+}
+.puzzle__banner--aborted {
+  background: #26262d;
+  color: #c9c9d1;
+}
+
+.puzzle__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.puzzle__act {
+  min-height: 52px;
+  border-radius: 12px;
+  border: 1px solid #3a3a42;
+  background: #26262d;
+  color: #e6e6ea;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.puzzle__act--primary {
+  background: #3a5cff;
+  border-color: #3a5cff;
+  color: #fff;
+}
