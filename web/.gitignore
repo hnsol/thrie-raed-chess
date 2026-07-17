@@ -5,3 +5,4 @@ dist-ssr/
 .DS_Store
 dev-dist/
 src/data/puzzles.json
+public/engine/

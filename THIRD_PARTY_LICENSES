@@ -48,3 +48,22 @@ Public License, version 2 or later (GPLv2+):
 https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 Original artwork: https://en.wikipedia.org/wiki/User:Cburnett/GFDL_images/Chess
 ================================================================================
+Stockfish / Stockfish.js — chess engine (web app)
+https://github.com/official-stockfish/Stockfish
+https://github.com/nmrugg/stockfish.js
+
+The web app (web/) bundles the Stockfish chess engine compiled to WebAssembly
+via Stockfish.js by Nathan Rugg (nmrugg). The single-thread "lite" build files
+(web/public/engine/stockfish-*-lite-single.js and .wasm) are vendored from the
+npm package "stockfish" into public/engine/ at install/build time by
+web/scripts/copy-engine.mjs.
+
+Stockfish is free software distributed under the GNU General Public License,
+version 3 (GPLv3): https://www.gnu.org/licenses/gpl-3.0.html
+Stockfish.js is (c) Chess.com, LLC and also distributed under GPLv3:
+https://raw.githubusercontent.com/nmrugg/stockfish.js/master/Copying.txt
+
+Stockfish is by T. Romstad, M. Costalba, J. Kiiski, G. Linscott and other
+contributors. The neural network is by Linmiao Xu (linrock). See the AUTHORS
+file in the Stockfish repository for full credits.
+================================================================================
