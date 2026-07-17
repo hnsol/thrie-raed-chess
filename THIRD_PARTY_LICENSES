@@ -37,3 +37,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ================================================================================
+cburnett — chess piece SVG set (web app)
+https://github.com/lichess-org/lila
+
+The chess piece SVGs in web/public/pieces/ (wK.svg 等 12 files) are the
+"cburnett" set bundled with Lichess (lila), located at
+public/piece/cburnett/ in the lichess-org/lila repository. The cburnett set
+was created by Colin M.L. Burnett and is distributed under the GNU General
+Public License, version 2 or later (GPLv2+):
+https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+Original artwork: https://en.wikipedia.org/wiki/User:Cburnett/GFDL_images/Chess
+================================================================================

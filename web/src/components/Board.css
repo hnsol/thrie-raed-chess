@@ -1,0 +1,110 @@
+.board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  aspect-ratio: 1;
+  width: min(100%, 60vh);
+  margin: 0 auto;
+  border: 2px solid #3a3a42;
+  border-radius: 4px;
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ダークテーマに合う明暗2色 */
+.cell--light {
+  background: #b7bdc9;
+}
+.cell--dark {
+  background: #5c6373;
+}
+
+.piece {
+  width: 92%;
+  height: 92%;
+  pointer-events: none;
+}
+.piece--svg {
+  object-fit: contain;
+}
+.piece--glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: min(9vw, 5.4vh);
+  line-height: 1;
+}
+.piece--w {
+  color: #f4f4f6;
+  text-shadow: 0 0 2px #000, 0 0 2px #000;
+}
+.piece--b {
+  color: #17171b;
+  text-shadow: 0 0 2px #999;
+}
+
+/* 座標ラベル */
+.coord {
+  position: absolute;
+  font-size: min(2.4vw, 1.4vh);
+  font-weight: 600;
+  opacity: 0.75;
+  color: #1b1b1f;
+}
+.cell--dark .coord {
+  color: #e6e6ea;
+}
+.coord--rank {
+  top: 1px;
+  left: 2px;
+}
+.coord--file {
+  bottom: 1px;
+  right: 2px;
+}
+
+/* ---- ロール別ハイライト ---- */
+/* 直前の手: 薄黄 */
+.cell--lastmove {
+  box-shadow: inset 0 0 0 100vmax rgba(240, 220, 90, 0.38);
+}
+
+/* 3択の識別色(0/1/2) */
+.cell--choice-0 {
+  box-shadow: inset 0 0 0 100vmax rgba(80, 200, 170, 0.4);
+}
+.cell--choice-1 {
+  box-shadow: inset 0 0 0 100vmax rgba(90, 150, 240, 0.4);
+}
+.cell--choice-2 {
+  box-shadow: inset 0 0 0 100vmax rgba(240, 160, 70, 0.4);
+}
+
+/* フォーカス中は枠を強調、ディム中は薄める */
+.cell--choice-focused {
+  outline: 3px solid #ffd34d;
+  outline-offset: -3px;
+  z-index: 1;
+}
+.cell--choice-dimmed {
+  opacity: 0.9;
+}
+
+/* 指した後: 選んだ手=緑寄り、選ばれなかった手=控えめ */
+.cell--result-chosen {
+  box-shadow: inset 0 0 0 100vmax rgba(70, 200, 110, 0.45);
+  outline: 3px solid #46c86e;
+  outline-offset: -3px;
+  z-index: 1;
+}
+.cell--result-other {
+  box-shadow: inset 0 0 0 100vmax rgba(200, 90, 90, 0.32);
+}
