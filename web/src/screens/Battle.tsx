@@ -18,8 +18,8 @@ import {
   type Color,
   type RevealedChoice,
 } from "../lib/session";
-import { moveFacts } from "../lib/evaluation";
 import { parseUci } from "../lib/puzzles";
+import { MOVEMENT_HELP } from "../lib/stats";
 import { CoachCommenter } from "../lib/coach";
 import { gameReviewText, shareOrCopy } from "../lib/review";
 import CoachBubble from "../components/CoachBubble";
@@ -86,6 +86,8 @@ export default function Battle({
   const [reviewFeedback, setReviewFeedback] = useState<string | null>(null);
   const [manualReviewText, setManualReviewText] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
+  // 下部シートのタブ(統計 / 駒の動かし方 / 棋譜)。
+  const [sheetTab, setSheetTab] = useState<"stats" | "help" | "moves">("stats");
   // 直前に盤を動かしたのが人間か CPU か(終局ハイライトの判定用)。
   const lastMoverRef = useRef<"human" | "cpu" | null>(null);
 
@@ -235,15 +237,17 @@ export default function Battle({
       bmChoices.length > 0 &&
       lastMoverRef.current === "human";
 
+    const colors = session.choices.map((c) => c.color);
+
     if (phase === BattlePhase.REVEALED) {
       return humanResult
-        ? resultModel(board, bmChoices, session.chosenIdx as number)
+        ? resultModel(board, bmChoices, session.chosenIdx as number, colors)
         : new Map();
     }
 
     // CPU_THINKING / GAME_OVER: 直前が人間なら結果モデル、CPU なら lastmove。
     if (humanResult) {
-      return resultModel(board, bmChoices, session.chosenIdx as number);
+      return resultModel(board, bmChoices, session.chosenIdx as number, colors);
     }
     const lm = lastMoveOf(board);
     return lm ? lastmoveModel(board, lm) : new Map();
@@ -253,6 +257,28 @@ export default function Battle({
   const share = whiteShare(session.positionEvalCp);
   const summary = session.stats.summary();
   const gameOver = phase === BattlePhase.GAME_OVER;
+
+  // 着手フラッシュ: 直前の手(人間/CPU 問わず)の到達マスを点滅させる。
+  // flashKey に手数を入れ、手が変わるたびアニメを再トリガーする。
+  const history = session.board.history();
+  const lm = lastMoveOf(session.board);
+  // 3択提示中(まだ指していない)はフラッシュしない。開示後・CPU 手後のみ。
+  const flashActive =
+    phase === BattlePhase.REVEALED ||
+    phase === BattlePhase.CPU_THINKING ||
+    phase === BattlePhase.GAME_OVER ||
+    (phase === BattlePhase.HUMAN_CHOOSING && lastMoverRef.current === "cpu");
+  const flashSquare = flashActive && lm ? lm.to : null;
+
+  // 棋譜: SAN を手番号付きで整形(1. e4 e5 2. Nf3 ...)。
+  const movePairs: { no: number; white: string; black: string }[] = [];
+  for (let i = 0; i < history.length; i += 2) {
+    movePairs.push({
+      no: i / 2 + 1,
+      white: history[i],
+      black: history[i + 1] ?? "",
+    });
+  }
 
   return (
     <div className="battle">
@@ -274,7 +300,13 @@ export default function Battle({
         <span className="battle__evaltext">{session.positionEval}</span>
       </div>
 
-      <Board fen={session.board.fen()} roles={roles} flip={flip} />
+      <Board
+        fen={session.board.fen()}
+        roles={roles}
+        flip={flip}
+        flashSquare={flashSquare}
+        flashKey={history.length}
+      />
 
       {!gameOver && !error && <CoachBubble comment={coachComment} />}
 
@@ -387,7 +419,7 @@ export default function Battle({
         <div className="battle__choices">
           {session.choices.map((c, i) => {
             const focused = session.focusedIdx === i;
-            const facts = moveFacts(session.board, c.uci);
+            // 選択前は facts(ヒント)を出さない。SAN と操作案内のみ。
             return (
               <button
                 key={i}
@@ -398,9 +430,6 @@ export default function Battle({
                 onClick={() => handlePick(i)}
               >
                 <span className="bchoice__san">{c.san}</span>
-                <span className="bchoice__sub">
-                  {facts.length ? facts.join(" / ") : "　"}
-                </span>
                 <span className="bchoice__hint">
                   {focused ? "もう一度タップで確定" : "タップでプレビュー"}
                 </span>
@@ -417,7 +446,7 @@ export default function Battle({
             type="button"
             onClick={() => setShowStats((v) => !v)}
           >
-            統計 {showStats ? "▲" : "▼"}
+            統計・情報 {showStats ? "▲" : "▼"}
           </button>
           <button
             className="battle__resign"
@@ -430,30 +459,118 @@ export default function Battle({
       )}
 
       {!gameOver && showStats && (
-        <dl className="battle__stats battle__stats--sheet">
-          <div>
-            <dt>手数</dt>
-            <dd>{summary.moves}</dd>
+        <>
+          <button
+            className="battle__sheet-backdrop"
+            type="button"
+            aria-label="閉じる"
+            onClick={() => setShowStats(false)}
+          />
+          <div className="battle__sheet" role="dialog" aria-label="統計・情報">
+            <div className="battle__sheet-tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sheetTab === "stats"}
+                className={
+                  "battle__tab" + (sheetTab === "stats" ? " battle__tab--active" : "")
+                }
+                onClick={() => setSheetTab("stats")}
+              >
+                統計
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sheetTab === "help"}
+                className={
+                  "battle__tab" + (sheetTab === "help" ? " battle__tab--active" : "")
+                }
+                onClick={() => setSheetTab("help")}
+              >
+                駒の動かし方
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sheetTab === "moves"}
+                className={
+                  "battle__tab" + (sheetTab === "moves" ? " battle__tab--active" : "")
+                }
+                onClick={() => setSheetTab("moves")}
+              >
+                棋譜
+              </button>
+              <button
+                type="button"
+                className="battle__sheet-close"
+                aria-label="閉じる"
+                onClick={() => setShowStats(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="battle__sheet-body">
+              {sheetTab === "stats" && (
+                <dl className="battle__stats battle__stats--sheet">
+                  <div>
+                    <dt>手数</dt>
+                    <dd>{summary.moves}</dd>
+                  </div>
+                  <div>
+                    <dt>緑/黄/赤</dt>
+                    <dd>
+                      {summary.green}/{summary.yellow}/{summary.red}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>平均loss</dt>
+                    <dd>{summary.avgLoss}</dd>
+                  </div>
+                  <div>
+                    <dt>直近</dt>
+                    <dd>
+                      {summary.lastColor
+                        ? `${summary.lastColor} ${summary.lastLoss}`
+                        : "-"}
+                    </dd>
+                  </div>
+                </dl>
+              )}
+
+              {sheetTab === "help" && (
+                <ul className="battle__help">
+                  {MOVEMENT_HELP.map((p) => (
+                    <li key={p.name} className="battle__help-item">
+                      <span className="battle__help-glyph" aria-hidden="true">
+                        {p.glyph}
+                      </span>
+                      <span className="battle__help-name">{p.name}</span>
+                      <span className="battle__help-move">{p.move}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {sheetTab === "moves" && (
+                <ol className="battle__moves">
+                  {movePairs.length === 0 ? (
+                    <li className="battle__moves-empty">まだ手がありません</li>
+                  ) : (
+                    movePairs.map((m) => (
+                      <li key={m.no} className="battle__moves-row">
+                        <span className="battle__moves-no">{m.no}.</span>
+                        <span className="battle__moves-san">{m.white}</span>
+                        <span className="battle__moves-san">{m.black}</span>
+                      </li>
+                    ))
+                  )}
+                </ol>
+              )}
+            </div>
           </div>
-          <div>
-            <dt>緑/黄/赤</dt>
-            <dd>
-              {summary.green}/{summary.yellow}/{summary.red}
-            </dd>
-          </div>
-          <div>
-            <dt>平均loss</dt>
-            <dd>{summary.avgLoss}</dd>
-          </div>
-          <div>
-            <dt>直近</dt>
-            <dd>
-              {summary.lastColor
-                ? `${summary.lastColor} ${summary.lastLoss}`
-                : "-"}
-            </dd>
-          </div>
-        </dl>
+        </>
       )}
     </div>
   );

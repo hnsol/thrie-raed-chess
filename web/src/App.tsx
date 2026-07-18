@@ -108,7 +108,7 @@ export default function App() {
 
   if (screen === "battle" && battleCfg) {
     return (
-      <div className="app">
+      <div className="app app--battle">
         <Battle
           key={battleCfg.key}
           client={getClient()}

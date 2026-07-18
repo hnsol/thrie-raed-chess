@@ -1,7 +1,17 @@
 .battle {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  /* 通常の対戦ビューは収まるが、終局(結果+テキスト)だけは縦に伸びうるので
+     はみ出す時のみスクロールできるようにしておく。 */
+  overflow-y: auto;
+}
+
+/* 対戦盤は 3択+フットまで 1 画面に収めるため縮小(パズル盤は 60vh のまま)。 */
+.battle .board {
+  width: min(100%, 42vh);
 }
 
 .battle__head {
@@ -83,11 +93,11 @@
 .battle__choices {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .bchoice {
   width: 100%;
-  min-height: 56px;
+  min-height: 52px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -101,14 +111,16 @@
   touch-action: manipulation;
   text-align: left;
 }
+/* 3択の識別色: シアン / マゼンタ / 青紫。開示後の評価色(緑/黄/赤)と区別する。 */
 .bchoice--0 {
-  background: rgba(80, 200, 170, 0.85);
+  background: rgba(41, 182, 216, 0.9);
 }
 .bchoice--1 {
-  background: rgba(90, 150, 240, 0.85);
+  background: rgba(216, 111, 216, 0.9);
 }
 .bchoice--2 {
-  background: rgba(240, 160, 70, 0.85);
+  background: rgba(122, 122, 230, 0.9);
+  color: #0b0b16;
 }
 .bchoice--focused {
   border-color: #ffd34d;
@@ -168,7 +180,7 @@
 .battle__revealed {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* CPU 思考中 */
@@ -272,6 +284,9 @@
 .battle__foot {
   display: flex;
   gap: 10px;
+  /* 3択の下・画面最下部にフットを固定してファーストビュー内に収める。 */
+  margin-top: auto;
+  padding-top: 4px;
 }
 .battle__stats-toggle {
   flex: 1;
@@ -293,4 +308,125 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* ── 下部シート(統計 / 駒の動かし方 / 棋譜) ── */
+.battle__sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+.battle__sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  max-width: 520px;
+  margin: 0 auto;
+  max-height: 72dvh;
+  display: flex;
+  flex-direction: column;
+  background: #1f1f26;
+  border: 1px solid #3a3a42;
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+}
+.battle__sheet-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 8px 8px 0;
+  border-bottom: 1px solid #3a3a42;
+}
+.battle__tab {
+  flex: 1;
+  min-height: 40px;
+  border: none;
+  background: none;
+  color: #c9c9d1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.battle__tab--active {
+  color: #fff;
+  border-bottom-color: #3a5cff;
+}
+.battle__sheet-close {
+  flex: 0 0 auto;
+  width: 40px;
+  min-height: 40px;
+  border: none;
+  background: none;
+  color: #c9c9d1;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.battle__sheet-body {
+  padding: 12px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 駒の動かし方 */
+.battle__help {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.battle__help-item {
+  display: grid;
+  grid-template-columns: 1.6rem auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  align-items: baseline;
+}
+.battle__help-glyph {
+  grid-row: 1 / 3;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.battle__help-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.battle__help-move {
+  font-size: 0.82rem;
+  opacity: 0.85;
+  line-height: 1.4;
+}
+
+/* 棋譜 */
+.battle__moves {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+}
+.battle__moves-row {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr 1fr;
+  gap: 4px;
+  padding: 3px 0;
+  font-size: 0.95rem;
+}
+.battle__moves-no {
+  opacity: 0.55;
+  text-align: right;
+}
+.battle__moves-san {
+  font-weight: 600;
+}
+.battle__moves-empty {
+  opacity: 0.6;
+  font-size: 0.9rem;
 }

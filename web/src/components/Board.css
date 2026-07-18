@@ -31,6 +31,8 @@
   width: 92%;
   height: 92%;
   pointer-events: none;
+  position: relative;
+  z-index: 1;
 }
 .piece--svg {
   object-fit: contain;
@@ -77,15 +79,16 @@
   box-shadow: inset 0 0 0 100vmax rgba(240, 220, 90, 0.38);
 }
 
-/* 3択の識別色(0/1/2) */
+/* 3択の識別色(0/1/2): シアン / マゼンタ / 青紫。
+   開示後の評価色(緑/黄/赤)とひと目で区別できる寒色系で統一。 */
 .cell--choice-0 {
-  box-shadow: inset 0 0 0 100vmax rgba(80, 200, 170, 0.4);
+  box-shadow: inset 0 0 0 100vmax rgba(41, 182, 216, 0.42);
 }
 .cell--choice-1 {
-  box-shadow: inset 0 0 0 100vmax rgba(90, 150, 240, 0.4);
+  box-shadow: inset 0 0 0 100vmax rgba(216, 111, 216, 0.42);
 }
 .cell--choice-2 {
-  box-shadow: inset 0 0 0 100vmax rgba(240, 160, 70, 0.4);
+  box-shadow: inset 0 0 0 100vmax rgba(122, 122, 230, 0.42);
 }
 
 /* フォーカス中は枠を強調、ディム中は薄める */
@@ -98,13 +101,68 @@
   opacity: 0.9;
 }
 
-/* 指した後: 選んだ手=緑寄り、選ばれなかった手=控えめ */
+/* 指した後: 選んだ手=白枠で強調、選ばれなかった手=中立の淡色。
+   評価色(下の cell--eval-*)が付与されればそちらが背景を上書きする。 */
 .cell--result-chosen {
-  box-shadow: inset 0 0 0 100vmax rgba(70, 200, 110, 0.45);
-  outline: 3px solid #46c86e;
+  box-shadow: inset 0 0 0 100vmax rgba(255, 255, 255, 0.16);
+  outline: 3px solid #fff;
   outline-offset: -3px;
   z-index: 1;
 }
 .cell--result-other {
-  box-shadow: inset 0 0 0 100vmax rgba(200, 90, 90, 0.32);
+  box-shadow: inset 0 0 0 100vmax rgba(255, 255, 255, 0.12);
+}
+
+/* 開示後、選んだ手の評価色。識別色・result より後に定義して背景を上書きする。 */
+.cell--eval-green {
+  box-shadow: inset 0 0 0 100vmax rgba(70, 200, 110, 0.5);
+  outline: 3px solid #46c86e;
+  outline-offset: -3px;
+  z-index: 1;
+}
+.cell--eval-yellow {
+  box-shadow: inset 0 0 0 100vmax rgba(240, 200, 70, 0.5);
+  outline: 3px solid #f0c846;
+  outline-offset: -3px;
+  z-index: 1;
+}
+.cell--eval-red {
+  box-shadow: inset 0 0 0 100vmax rgba(230, 90, 90, 0.5);
+  outline: 3px solid #e65a5a;
+  outline-offset: -3px;
+  z-index: 1;
+}
+
+/* 着手フラッシュ(TUI の点滅相当)。到達マスを 0.8s パルス。 */
+.cell__flash {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: #ffe27a;
+  opacity: 0;
+  animation: cell-flash 0.8s ease-out;
+}
+@keyframes cell-flash {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  30% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.75;
+  }
+  70% {
+    opacity: 0.15;
+  }
+  85% {
+    opacity: 0.65;
+  }
+  100% {
+    opacity: 0;
+  }
 }

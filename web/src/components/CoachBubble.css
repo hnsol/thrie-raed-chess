@@ -1,15 +1,16 @@
 /* コーチ吹き出し。固定高でレイアウトシフト防止。 */
 .coachbubble {
-  min-height: 48px;
+  min-height: 40px;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 .coachbubble__inner {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 12px;
   background: #26262d;
   border: 1px solid #3a3a42;

@@ -7,6 +7,15 @@
   gap: 20px;
 }
 
+/* 対戦画面はスクロールなしで 1 画面に収める。 */
+.app--battle {
+  max-width: 520px;
+  height: 100dvh;
+  padding: 8px 10px;
+  gap: 0;
+  overflow: hidden;
+}
+
 .app__header {
   text-align: center;
 }

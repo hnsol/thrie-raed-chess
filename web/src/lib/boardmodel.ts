@@ -40,11 +40,15 @@ export enum CellRole {
   RESULT_OTHER = "RESULT_OTHER", // 指した後: 選ばなかった候補
 }
 
+// 開示後の盤ハイライトに使う評価色(green/yellow/red)。識別色とは別軸。
+export type EvalColor = "green" | "yellow" | "red";
+
 export interface Cell {
   role: CellRole;
   choiceIndex: number | null; // 識別色配列の何番目を使うか
   piece: Piece | null;
   showPiece: boolean; // false なら升は空き表示(出発点など)
+  evalColor?: EvalColor | null; // 開示後、選んだ手の評価色(緑/黄/赤)
 }
 
 export type CellMap = Map<Square, Cell>;
@@ -54,8 +58,9 @@ function makeCell(
   choiceIndex: number | null = null,
   piece: Piece | null = null,
   showPiece = true,
+  evalColor: EvalColor | null = null,
 ): Cell {
-  return { role, choiceIndex, piece, showPiece };
+  return { role, choiceIndex, piece, showPiece, evalColor };
 }
 
 function pieceAt(board: PieceLookup, square: Square): Piece | null {
@@ -110,10 +115,13 @@ export function choiceModel(
 // 指した後の盤(board は sel の手を適用済み)。
 // 選んだ手はその識別色で単色表示(出発点=空き)、選ばなかった候補も
 // 色付きで併記する。
+// colors を渡すと、選んだ手の升をその評価色(緑/黄/赤)で強調する。
+// 選ばれなかった候補は中立の淡色(識別色は使わない)。
 export function resultModel(
   board: PieceLookup,
   choices: Choice[],
   sel: number,
+  colors?: (EvalColor | null)[],
 ): CellMap {
   const model: CellMap = new Map();
   choices.forEach((choice, i) => {
@@ -128,10 +136,11 @@ export function resultModel(
     );
   });
   const mv = choices[sel].move;
-  model.set(mv.from, makeCell(CellRole.RESULT_CHOSEN, sel, null, false));
+  const evalColor = colors ? (colors[sel] ?? null) : null;
+  model.set(mv.from, makeCell(CellRole.RESULT_CHOSEN, sel, null, false, evalColor));
   model.set(
     mv.to,
-    makeCell(CellRole.RESULT_CHOSEN, sel, pieceAt(board, mv.to)),
+    makeCell(CellRole.RESULT_CHOSEN, sel, pieceAt(board, mv.to), true, evalColor),
   );
   return model;
 }

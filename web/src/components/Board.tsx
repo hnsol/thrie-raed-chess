@@ -34,6 +34,10 @@ function roleClasses(cell: Cell): string {
   if (cell.choiceIndex !== null) {
     classes.push("cell--choice-" + (cell.choiceIndex % 3));
   }
+  // 開示後、選んだ手はその評価色(緑/黄/赤)で強調(識別色より優先)。
+  if (cell.evalColor) {
+    classes.push("cell--eval-" + cell.evalColor);
+  }
   return classes.join(" ");
 }
 
@@ -67,9 +71,18 @@ export interface BoardProps {
   fen: string;
   roles?: CellMap;
   flip?: boolean; // 後手視点
+  // 着手のフラッシュ演出。flashSquare の升を点滅させ、flashKey が変わると再トリガー。
+  flashSquare?: string | null;
+  flashKey?: string | number;
 }
 
-export function Board({ fen, roles, flip = false }: BoardProps) {
+export function Board({
+  fen,
+  roles,
+  flip = false,
+  flashSquare = null,
+  flashKey = 0,
+}: BoardProps) {
   const pieces = parseFenPieces(fen);
 
   const files = flip ? [...FILES].reverse() : FILES;
@@ -93,8 +106,17 @@ export function Board({ fen, roles, flip = false }: BoardProps) {
       ];
       if (cellRole) classNames.push(roleClasses(cellRole));
 
+      const flashing = flashSquare !== null && square === flashSquare;
+
       cells.push(
         <div key={square} className={classNames.join(" ")} data-square={square}>
+          {flashing && (
+            <span
+              key={"flash-" + flashKey}
+              className="cell__flash"
+              aria-hidden="true"
+            />
+          )}
           {f === 0 && <span className="coord coord--rank">{ranks[r]}</span>}
           {r === 7 && <span className="coord coord--file">{files[f]}</span>}
           {piece && <PieceView piece={piece} />}
