@@ -345,7 +345,9 @@ export default function Battle({
 
       {!gameOver && !error && <CoachBubble comment={coachComment} />}
 
-      {/* 状況に応じた下部 UI */}
+      {/* 状況に応じた下部 UI。盤より上は非スクロール領域とし、ここだけが
+          スクロール可能。内容が増減しても盤の位置は物理的に動かない。 */}
+      <div className="battle__lower">
       {error ? (
         <div className="battle__error" role="alert">
           <div className="battle__error-title">
@@ -492,6 +494,7 @@ export default function Battle({
           </button>
         </div>
       )}
+      </div>
 
       {!gameOver && showStats && (
         <>
@@ -578,9 +581,12 @@ export default function Battle({
                 <ul className="battle__help">
                   {MOVEMENT_HELP.map((p) => (
                     <li key={p.name} className="battle__help-item">
-                      <span className="battle__help-glyph" aria-hidden="true">
-                        {p.glyph}
-                      </span>
+                      <img
+                        className="battle__help-glyph"
+                        src={`${import.meta.env.BASE_URL}pieces/${p.code}.svg`}
+                        alt=""
+                        aria-hidden="true"
+                      />
                       <span className="battle__help-name">{p.name}</span>
                       <span className="battle__help-move">{p.move}</span>
                     </li>

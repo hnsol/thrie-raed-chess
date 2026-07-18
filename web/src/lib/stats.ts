@@ -64,17 +64,19 @@ export class BattleStats {
 }
 
 // 駒の動かし方(下部シート用)。stats.py の movement_help_lines() を日本語で移植。
+// アイコンは Unicode グリフではなく盤と同じ SVG 駒(code)を使う。
+// (♟ U+265F は iOS 等で絵文字として描画され、他の駒と見た目が揃わないため)
 export interface PieceHelp {
-  glyph: string;
+  code: string; // public/pieces/<code>.svg
   name: string;
   move: string;
 }
 
 export const MOVEMENT_HELP: PieceHelp[] = [
-  { glyph: "♟", name: "ポーン", move: "前へ1マス(初手のみ2マス)。取るときは斜め前。" },
-  { glyph: "♞", name: "ナイト", move: "L字(2+1マス)。駒を飛び越せる。" },
-  { glyph: "♝", name: "ビショップ", move: "斜めに何マスでも。" },
-  { glyph: "♜", name: "ルーク", move: "縦・横に何マスでも。" },
-  { glyph: "♛", name: "クイーン", move: "縦・横・斜めに何マスでも。" },
-  { glyph: "♚", name: "キング", move: "周囲1マス。" },
+  { code: "wP", name: "ポーン", move: "前へ1マス(初手のみ2マス)。取るときは斜め前。" },
+  { code: "wN", name: "ナイト", move: "L字(2+1マス)。駒を飛び越せる。" },
+  { code: "wB", name: "ビショップ", move: "斜めに何マスでも。" },
+  { code: "wR", name: "ルーク", move: "縦・横に何マスでも。" },
+  { code: "wQ", name: "クイーン", move: "縦・横・斜めに何マスでも。" },
+  { code: "wK", name: "キング", move: "周囲1マス。" },
 ];
