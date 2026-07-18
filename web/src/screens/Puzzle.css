@@ -59,15 +59,17 @@
   cursor: pointer;
   touch-action: manipulation;
 }
-/* Board.css の choice-0/1/2 と同色系(teal / blue / orange)。 */
+/* Board.css の choice-0/1/2 と同色系。対戦(.bchoice--0/1/2)と統一:
+   シアン / マゼンタ / 青紫。 */
 .pchoice--0 {
-  background: rgba(80, 200, 170, 0.85);
+  background: rgba(41, 182, 216, 0.9);
 }
 .pchoice--1 {
-  background: rgba(90, 150, 240, 0.85);
+  background: rgba(216, 111, 216, 0.9);
 }
 .pchoice--2 {
-  background: rgba(240, 160, 70, 0.85);
+  background: rgba(122, 122, 230, 0.9);
+  color: #0b0b16;
 }
 .pchoice--focused {
   border-color: #ffd34d;

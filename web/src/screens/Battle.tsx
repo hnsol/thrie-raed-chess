@@ -39,12 +39,16 @@ function whiteShare(cp: number): number {
   return 1 / (1 + Math.pow(10, -cp / 400));
 }
 
+// chess.js の履歴から末尾から n 番目(0=直前)の手(from/to)を取り出す。
+function nthLastMove(board: Chess, n = 0): Move | null {
+  const hist = board.history({ verbose: true });
+  const mv = hist[hist.length - 1 - n];
+  return mv ? { from: mv.from, to: mv.to } : null;
+}
+
 // chess.js の履歴から直前の手(from/to)を取り出す。
 function lastMoveOf(board: Chess): Move | null {
-  const hist = board.history({ verbose: true });
-  if (hist.length === 0) return null;
-  const last = hist[hist.length - 1];
-  return { from: last.from, to: last.to };
+  return nthLastMove(board, 0);
 }
 
 export default function Battle({
@@ -91,7 +95,17 @@ export default function Battle({
   // 直前に盤を動かしたのが人間か CPU か(終局ハイライトの判定用)。
   const lastMoverRef = useRef<"human" | "cpu" | null>(null);
 
+  // 着手フラッシュ。手が盤に反映されるたび(人間/CPU 問わず)到達マスを1回点滅。
+  // seq は手ごとにインクリメントし、Board 側の key を変えてアニメを再トリガーする。
+  // 解析中〜3択表示中の再描画では seq が変わらないため点滅は再発火しない(1回分)。
+  const [flash, setFlash] = useState<{ sq: string; seq: number } | null>(null);
+  const flashSeqRef = useRef(0);
+  const prevPlyRef = useRef(0);
+
   const cancelledRef = useRef(false);
+  // StrictMode(dev) は effect を2回実行する。共有セッションへの二重の CPU 着手
+  // (Invalid move) を防ぐため、起動シーケンスは1回だけ走らせる。
+  const bootedRef = useRef(false);
 
   // 人間の手番を開始(解析→3択提示)。
   async function startHumanTurn() {
@@ -133,6 +147,8 @@ export default function Battle({
 
   // 初回: エンジン初期化 → 後手なら CPU 先行 → 人間手番。
   useEffect(() => {
+    if (bootedRef.current) return;
+    bootedRef.current = true;
     cancelledRef.current = false;
     (async () => {
       try {
@@ -155,11 +171,28 @@ export default function Battle({
     })();
     return () => {
       cancelledRef.current = true;
+      // StrictMode の疑似アンマウント後の再実行で起動し直せるように戻す。
+      // (中断された旧ランは cancelledRef のチェックポイントで抜ける)
+      bootedRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const phase = session.phase;
+
+  // 盤に新しい手が反映されたら着手フラッシュを発火する。verbose 履歴の手数が
+  // 増えた時だけ seq を進め、それ以外の再描画では点滅を再発火させない。
+  useEffect(() => {
+    const hist = session.board.history({ verbose: true });
+    if (hist.length !== prevPlyRef.current) {
+      prevPlyRef.current = hist.length;
+      const last = hist[hist.length - 1];
+      if (last) {
+        flashSeqRef.current += 1;
+        setFlash({ sq: last.to, seq: flashSeqRef.current });
+      }
+    }
+  });
 
   // 3択のタップ処理: 1回目=プレビュー、同じ手を2回目=確定。
   function handlePick(idx: number) {
@@ -240,9 +273,21 @@ export default function Battle({
     const colors = session.choices.map((c) => c.color);
 
     if (phase === BattlePhase.REVEALED) {
-      return humanResult
-        ? resultModel(board, bmChoices, session.chosenIdx as number, colors)
-        : new Map();
+      const model: CellMap = new Map();
+      // 直近の相手(CPU)の手=人間手の1つ前。result(選んだ手/他候補)より下に
+      // 敷いて、重ならないマスの薄黄を維持する。
+      const cpuMv = nthLastMove(board, 1);
+      if (cpuMv) for (const [k, v] of lastmoveModel(board, cpuMv)) model.set(k, v);
+      if (humanResult) {
+        for (const [k, v] of resultModel(
+          board,
+          bmChoices,
+          session.chosenIdx as number,
+          colors,
+        ))
+          model.set(k, v);
+      }
+      return model;
     }
 
     // CPU_THINKING / GAME_OVER: 直前が人間なら結果モデル、CPU なら lastmove。
@@ -258,17 +303,7 @@ export default function Battle({
   const summary = session.stats.summary();
   const gameOver = phase === BattlePhase.GAME_OVER;
 
-  // 着手フラッシュ: 直前の手(人間/CPU 問わず)の到達マスを点滅させる。
-  // flashKey に手数を入れ、手が変わるたびアニメを再トリガーする。
   const history = session.board.history();
-  const lm = lastMoveOf(session.board);
-  // 3択提示中(まだ指していない)はフラッシュしない。開示後・CPU 手後のみ。
-  const flashActive =
-    phase === BattlePhase.REVEALED ||
-    phase === BattlePhase.CPU_THINKING ||
-    phase === BattlePhase.GAME_OVER ||
-    (phase === BattlePhase.HUMAN_CHOOSING && lastMoverRef.current === "cpu");
-  const flashSquare = flashActive && lm ? lm.to : null;
 
   // 棋譜: SAN を手番号付きで整形(1. e4 e5 2. Nf3 ...)。
   const movePairs: { no: number; white: string; black: string }[] = [];
@@ -304,8 +339,8 @@ export default function Battle({
         fen={session.board.fen()}
         roles={roles}
         flip={flip}
-        flashSquare={flashSquare}
-        flashKey={history.length}
+        flashSquare={flash?.sq ?? null}
+        flashKey={flash?.seq ?? 0}
       />
 
       {!gameOver && !error && <CoachBubble comment={coachComment} />}

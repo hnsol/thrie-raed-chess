@@ -74,9 +74,9 @@
 }
 
 /* ---- ロール別ハイライト ---- */
-/* 直前の手: 薄黄 */
+/* 直前の相手の手: 薄黄(3択の識別色と重ならない限り常時表示。視認性のため濃いめ)。 */
 .cell--lastmove {
-  box-shadow: inset 0 0 0 100vmax rgba(240, 220, 90, 0.38);
+  box-shadow: inset 0 0 0 100vmax rgba(240, 220, 90, 0.55);
 }
 
 /* 3択の識別色(0/1/2): シアン / マゼンタ / 青紫。
@@ -101,7 +101,8 @@
   opacity: 0.9;
 }
 
-/* 指した後: 選んだ手=白枠で強調、選ばれなかった手=中立の淡色。
+/* 指した後: 選んだ手=白枠で強調。選ばれなかった候補は各識別色(choice と同系だが
+   やや沈んだトーン)で併記する(TUI の result_model 準拠)。
    評価色(下の cell--eval-*)が付与されればそちらが背景を上書きする。 */
 .cell--result-chosen {
   box-shadow: inset 0 0 0 100vmax rgba(255, 255, 255, 0.16);
@@ -109,8 +110,16 @@
   outline-offset: -3px;
   z-index: 1;
 }
-.cell--result-other {
-  box-shadow: inset 0 0 0 100vmax rgba(255, 255, 255, 0.12);
+/* 選ばなかった候補: choiceIndex に応じた識別色(choice 表示より薄いトーン)。
+   choice-N より詳細度が高いのでこちらが優先される。 */
+.cell--result-other.cell--choice-0 {
+  box-shadow: inset 0 0 0 100vmax rgba(41, 182, 216, 0.28);
+}
+.cell--result-other.cell--choice-1 {
+  box-shadow: inset 0 0 0 100vmax rgba(216, 111, 216, 0.28);
+}
+.cell--result-other.cell--choice-2 {
+  box-shadow: inset 0 0 0 100vmax rgba(122, 122, 230, 0.28);
 }
 
 /* 開示後、選んだ手の評価色。識別色・result より後に定義して背景を上書きする。 */
