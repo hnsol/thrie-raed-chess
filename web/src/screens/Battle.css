@@ -160,12 +160,10 @@
   font-size: 0.78rem;
   opacity: 0.9;
 }
-/* 開示時の定跡バッジ。選んだ手が定跡手のときだけ表示(選択前は一切出さない)。 */
+/* 開示時の定跡バッジ。meta 行に同居し行を増やさない(次へボタンの押し出し防止)。
+   選択前は一切出さない。 */
 .bchoice__book {
-  margin-top: 2px;
-  font-size: 0.75rem;
   font-weight: 700;
-  color: var(--on-choice);
 }
 
 /* 解析中スケルトン */

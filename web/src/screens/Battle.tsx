@@ -471,12 +471,14 @@ export default function Battle({
                   loss {r.loss}
                   {r.isChosen ? "（選択）" : ""}
                   {r.facts.length ? " ・ " + r.facts.join(" / ") : ""}
+                  {/* 定跡バッジは行を増やさず meta 行に同居させる(次へボタンが
+                      画面外へ押し出されるのを防ぐ) */}
+                  {r.isBook && session.bookInfo && (
+                    <span className="bchoice__book">
+                      {" ・ 📖 " + session.bookInfo.openingName}
+                    </span>
+                  )}
                 </span>
-                {r.isBook && session.bookInfo && (
-                  <span className="bchoice__book">
-                    📖 定跡: {session.bookInfo.openingName}
-                  </span>
-                )}
               </div>
             ))}
           </div>
