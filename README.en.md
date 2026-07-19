@@ -1,6 +1,8 @@
 <p align="center">
-  <img src="docs/images/title-logo.png" alt="Thrie Raed Chess" width="640">
+  <img src="web/public/icons/pwa-512x512.png" alt="Thrie Raed Chess" width="160">
 </p>
+
+<h1 align="center">Thrie Raed Chess</h1>
 
 <p align="center">
   A chess trainer for beginners — learn by choosing, not by searching<br>
