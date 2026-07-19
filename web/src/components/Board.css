@@ -5,7 +5,7 @@
   aspect-ratio: 1;
   width: min(100%, 60vh);
   margin: 0 auto;
-  border: 2px solid #3a3a42;
+  border: 2px solid var(--border);
   border-radius: 4px;
   overflow: hidden;
   touch-action: manipulation;
@@ -21,10 +21,10 @@
 
 /* ダークテーマに合う明暗2色 */
 .cell--light {
-  background: #b7bdc9;
+  background: var(--square-light);
 }
 .cell--dark {
-  background: #5c6373;
+  background: var(--square-dark);
 }
 
 .piece {
@@ -45,11 +45,11 @@
   line-height: 1;
 }
 .piece--w {
-  color: #f4f4f6;
+  color: var(--flexoki-paper);
   text-shadow: 0 0 2px #000, 0 0 2px #000;
 }
 .piece--b {
-  color: #17171b;
+  color: var(--flexoki-black);
   text-shadow: 0 0 2px #999;
 }
 
@@ -59,10 +59,14 @@
   font-size: min(2.4vw, 1.4vh);
   font-weight: 600;
   opacity: 0.75;
-  color: #1b1b1f;
+  color: var(--flexoki-black);
 }
-.cell--dark .coord {
-  color: #e6e6ea;
+/* ライトでは暗マス(base-400)上でも黒が読めるためデフォルトの黒を使う。
+   ダークのみ暗マス(base-600)上で明るいラベルへ切替える。 */
+@media (prefers-color-scheme: dark) {
+  .cell--dark .coord {
+    color: var(--flexoki-100);
+  }
 }
 .coord--rank {
   top: 1px;
@@ -76,24 +80,28 @@
 /* ---- ロール別ハイライト ---- */
 /* 直前の相手の手: 薄黄(3択の識別色と重ならない限り常時表示。視認性のため濃いめ)。 */
 .cell--lastmove {
-  box-shadow: inset 0 0 0 100vmax rgba(240, 220, 90, 0.55);
+  box-shadow: inset 0 0 0 100vmax
+    color-mix(in srgb, var(--lastmove) 55%, transparent);
 }
 
 /* 3択の識別色(0/1/2): シアン / マゼンタ / 青紫。
    開示後の評価色(緑/黄/赤)とひと目で区別できる寒色系で統一。 */
 .cell--choice-0 {
-  box-shadow: inset 0 0 0 100vmax rgba(41, 182, 216, 0.42);
+  box-shadow: inset 0 0 0 100vmax
+    color-mix(in srgb, var(--choice-0) 42%, transparent);
 }
 .cell--choice-1 {
-  box-shadow: inset 0 0 0 100vmax rgba(216, 111, 216, 0.42);
+  box-shadow: inset 0 0 0 100vmax
+    color-mix(in srgb, var(--choice-1) 42%, transparent);
 }
 .cell--choice-2 {
-  box-shadow: inset 0 0 0 100vmax rgba(122, 122, 230, 0.42);
+  box-shadow: inset 0 0 0 100vmax
+    color-mix(in srgb, var(--choice-2) 42%, transparent);
 }
 
 /* フォーカス中は枠を強調、ディム中は薄める */
 .cell--choice-focused {
-  outline: 3px solid #ffd34d;
+  outline: 3px solid var(--focus);
   outline-offset: -3px;
   z-index: 1;
 }
@@ -105,39 +113,46 @@
    やや沈んだトーン)で併記する(TUI の result_model 準拠)。
    評価色(下の cell--eval-*)が付与されればそちらが背景を上書きする。 */
 .cell--result-chosen {
-  box-shadow: inset 0 0 0 100vmax rgba(255, 255, 255, 0.16);
-  outline: 3px solid #fff;
+  box-shadow: inset 0 0 0 100vmax
+    color-mix(in srgb, var(--result-chosen) 16%, transparent);
+  outline: 3px solid var(--result-chosen);
   outline-offset: -3px;
   z-index: 1;
 }
 /* 選ばなかった候補: choiceIndex に応じた識別色(choice 表示より薄いトーン)。
    choice-N より詳細度が高いのでこちらが優先される。 */
 .cell--result-other.cell--choice-0 {
-  box-shadow: inset 0 0 0 100vmax rgba(41, 182, 216, 0.28);
+  box-shadow: inset 0 0 0 100vmax
+    color-mix(in srgb, var(--choice-0) 28%, transparent);
 }
 .cell--result-other.cell--choice-1 {
-  box-shadow: inset 0 0 0 100vmax rgba(216, 111, 216, 0.28);
+  box-shadow: inset 0 0 0 100vmax
+    color-mix(in srgb, var(--choice-1) 28%, transparent);
 }
 .cell--result-other.cell--choice-2 {
-  box-shadow: inset 0 0 0 100vmax rgba(122, 122, 230, 0.28);
+  box-shadow: inset 0 0 0 100vmax
+    color-mix(in srgb, var(--choice-2) 28%, transparent);
 }
 
 /* 開示後、選んだ手の評価色。識別色・result より後に定義して背景を上書きする。 */
 .cell--eval-green {
-  box-shadow: inset 0 0 0 100vmax rgba(70, 200, 110, 0.5);
-  outline: 3px solid #46c86e;
+  box-shadow: inset 0 0 0 100vmax
+    color-mix(in srgb, var(--eval-green) 50%, transparent);
+  outline: 3px solid var(--eval-green);
   outline-offset: -3px;
   z-index: 1;
 }
 .cell--eval-yellow {
-  box-shadow: inset 0 0 0 100vmax rgba(240, 200, 70, 0.5);
-  outline: 3px solid #f0c846;
+  box-shadow: inset 0 0 0 100vmax
+    color-mix(in srgb, var(--eval-yellow) 50%, transparent);
+  outline: 3px solid var(--eval-yellow);
   outline-offset: -3px;
   z-index: 1;
 }
 .cell--eval-red {
-  box-shadow: inset 0 0 0 100vmax rgba(230, 90, 90, 0.5);
-  outline: 3px solid #e65a5a;
+  box-shadow: inset 0 0 0 100vmax
+    color-mix(in srgb, var(--eval-red) 50%, transparent);
+  outline: 3px solid var(--eval-red);
   outline-offset: -3px;
   z-index: 1;
 }
@@ -148,7 +163,7 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: #ffe27a;
+  background: var(--flash);
   opacity: 0;
   animation: cell-flash 0.8s ease-out;
 }

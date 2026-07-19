@@ -40,7 +40,7 @@
 .battle__back {
   background: none;
   border: none;
-  color: #c9c9d1;
+  color: var(--fg-muted);
   font-size: 0.95rem;
   cursor: pointer;
   padding: 4px 0;
@@ -56,12 +56,12 @@
   height: 18px;
   border-radius: 9px;
   overflow: hidden;
-  background: #1a1a1f; /* 黒側 */
-  border: 1px solid #3a3a42;
+  background: var(--evalbar-black); /* 黒側 */
+  border: 1px solid var(--border);
 }
 .battle__evalbar-white {
   height: 100%;
-  background: #e6e6ea; /* 白側 */
+  background: var(--evalbar-white); /* 白側 */
   transition: width 0.3s ease;
 }
 .battle__evaltext {
@@ -72,7 +72,7 @@
   justify-content: center;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #3a5cff;
+  color: var(--primary);
   mix-blend-mode: difference;
 }
 
@@ -83,15 +83,15 @@
   gap: 8px;
   margin: 0;
   padding: 16px;
-  border: 1px solid #5a2a2a;
+  border: 1px solid color-mix(in srgb, var(--eval-red) 50%, transparent);
   border-radius: 12px;
-  background: rgba(120, 40, 40, 0.18);
+  background: color-mix(in srgb, var(--eval-red) 15%, transparent);
   text-align: center;
 }
 .battle__error-title {
   font-size: 1rem;
   font-weight: 700;
-  color: #ff9a9a;
+  color: var(--danger-fg);
 }
 .battle__error-detail {
   margin: 0;
@@ -123,25 +123,25 @@
   padding: 6px 16px;
   border-radius: 12px;
   border: 2px solid transparent;
-  color: #0e0e12;
+  color: var(--on-choice);
   cursor: pointer;
   touch-action: manipulation;
   text-align: left;
 }
 /* 3択の識別色: シアン / マゼンタ / 青紫。開示後の評価色(緑/黄/赤)と区別する。 */
 .bchoice--0 {
-  background: rgba(41, 182, 216, 0.9);
+  background: var(--choice-0);
 }
 .bchoice--1 {
-  background: rgba(216, 111, 216, 0.9);
+  background: var(--choice-1);
 }
 .bchoice--2 {
-  background: rgba(122, 122, 230, 0.9);
-  color: #0b0b16;
+  background: var(--choice-2);
+  color: var(--on-choice);
 }
 .bchoice--focused {
-  border-color: #ffd34d;
-  box-shadow: 0 0 0 2px rgba(255, 211, 77, 0.5);
+  border-color: var(--focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 50%, transparent);
 }
 .bchoice__san {
   font-size: 1.2rem;
@@ -165,13 +165,13 @@
   margin-top: 2px;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #0e0e12;
+  color: var(--on-choice);
 }
 
 /* 解析中スケルトン */
 .bchoice--skeleton {
-  background: #26262d;
-  color: #9a9aa2;
+  background: var(--bg-2);
+  color: var(--fg-muted);
   cursor: default;
   animation: bchoice-pulse 1.2s ease-in-out infinite;
 }
@@ -187,18 +187,18 @@
 
 /* 開示: 緑黄赤で再着色 */
 .bchoice--green {
-  background: rgba(70, 200, 110, 0.85);
+  background: color-mix(in srgb, var(--eval-green) 85%, transparent);
 }
 .bchoice--yellow {
-  background: rgba(240, 200, 70, 0.85);
+  background: color-mix(in srgb, var(--eval-yellow) 85%, transparent);
 }
 .bchoice--red {
-  background: rgba(230, 90, 90, 0.85);
-  color: #fff;
+  background: color-mix(in srgb, var(--eval-red) 85%, transparent);
+  color: var(--on-choice);
 }
 .bchoice--chosen {
-  border-color: #fff;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+  border-color: var(--result-chosen);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--result-chosen) 60%, transparent);
 }
 
 .battle__revealed {
@@ -220,8 +220,8 @@
 .battle__spinner {
   width: 18px;
   height: 18px;
-  border: 3px solid #3a3a42;
-  border-top-color: #3a5cff;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
   border-radius: 50%;
   animation: battle-spin 0.8s linear infinite;
 }
@@ -236,8 +236,8 @@
   min-height: 52px;
   border-radius: 12px;
   border: none;
-  background: #3a5cff;
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-primary);
   font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
@@ -262,16 +262,16 @@
 }
 .battle__review-feedback {
   font-size: 0.85rem;
-  color: #7ee0a0;
+  color: var(--success-fg);
   font-weight: 600;
 }
 .battle__review-text {
   width: 100%;
   font-size: 0.8rem;
   font-family: monospace;
-  background: #26262c;
-  color: #e6e6ea;
-  border: 1px solid #3a3a42;
+  background: var(--bg-2);
+  color: var(--fg);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 8px;
   resize: vertical;
@@ -286,7 +286,7 @@
   margin: 0;
   padding: 10px 12px;
   border-radius: 12px;
-  background: #26262d;
+  background: var(--bg-2);
   font-size: 0.82rem;
 }
 .battle__stats div {
@@ -302,7 +302,7 @@
   font-weight: 700;
 }
 .battle__stats--sheet {
-  border: 1px solid #3a3a42;
+  border: 1px solid var(--border);
 }
 
 .battle__foot {
@@ -316,9 +316,9 @@
   flex: 1;
   min-height: 44px;
   border-radius: 12px;
-  border: 1px solid #3a3a42;
-  background: #26262d;
-  color: #c9c9d1;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--fg-muted);
   font-size: 0.9rem;
   cursor: pointer;
 }
@@ -326,9 +326,9 @@
   min-height: 44px;
   padding: 0 18px;
   border-radius: 12px;
-  border: 1px solid rgba(230, 90, 90, 0.5);
-  background: rgba(230, 90, 90, 0.12);
-  color: #ff9a9a;
+  border: 1px solid color-mix(in srgb, var(--eval-red) 50%, transparent);
+  background: color-mix(in srgb, var(--eval-red) 15%, transparent);
+  color: var(--danger-fg);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -340,7 +340,7 @@
   inset: 0;
   z-index: 19;
   border: none;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--backdrop);
   cursor: pointer;
 }
 .battle__sheet {
@@ -354,33 +354,33 @@
   max-height: 72dvh;
   display: flex;
   flex-direction: column;
-  background: #1f1f26;
-  border: 1px solid #3a3a42;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
   border-bottom: none;
   border-radius: 16px 16px 0 0;
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 -8px 24px rgba(16, 15, 15, 0.4);
 }
 .battle__sheet-tabs {
   display: flex;
   align-items: stretch;
   gap: 4px;
   padding: 8px 8px 0;
-  border-bottom: 1px solid #3a3a42;
+  border-bottom: 1px solid var(--border);
 }
 .battle__tab {
   flex: 1;
   min-height: 40px;
   border: none;
   background: none;
-  color: #c9c9d1;
+  color: var(--fg-muted);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   border-bottom: 2px solid transparent;
 }
 .battle__tab--active {
-  color: #fff;
-  border-bottom-color: #3a5cff;
+  color: var(--fg);
+  border-bottom-color: var(--primary);
 }
 .battle__sheet-close {
   flex: 0 0 auto;
@@ -388,7 +388,7 @@
   min-height: 40px;
   border: none;
   background: none;
-  color: #c9c9d1;
+  color: var(--fg-muted);
   font-size: 1rem;
   cursor: pointer;
 }

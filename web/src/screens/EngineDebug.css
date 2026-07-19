@@ -17,8 +17,8 @@
   font-size: 0.8rem;
   padding: 8px;
   border-radius: 8px;
-  border: 1px solid #3a3a42;
-  background: #1b1b1f;
+  border: 1px solid var(--border);
+  background: var(--bg);
   color: inherit;
 }
 
@@ -29,10 +29,10 @@
 .edbg__btn {
   flex: 1;
   min-height: 48px;
-  border: 1px solid #3a3a42;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: #2f6feb;
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-primary);
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
@@ -42,7 +42,7 @@
   cursor: not-allowed;
 }
 .edbg__btn--ghost {
-  background: #26262d;
+  background: var(--bg-2);
   color: inherit;
 }
 
@@ -78,11 +78,11 @@
   font-size: 0.75rem;
   padding: 4px 6px;
   border-radius: 6px;
-  background: #26262d;
+  background: var(--bg-2);
   overflow: hidden;
 }
 .edbg__mpv {
-  color: #9db4ff;
+  color: var(--primary);
   min-width: 2.2em;
 }
 .edbg__depth {

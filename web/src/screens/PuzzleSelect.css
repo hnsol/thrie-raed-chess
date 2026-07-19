@@ -12,7 +12,7 @@
 .pselect__back {
   background: none;
   border: none;
-  color: #c9c9d1;
+  color: var(--fg-muted);
   font-size: 0.95rem;
   cursor: pointer;
   padding: 4px 0;
@@ -29,18 +29,18 @@
 .pselect__tab {
   flex: 1;
   min-height: 48px;
-  border: 1px solid #3a3a42;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: #26262d;
-  color: #e6e6ea;
+  background: var(--bg-2);
+  color: var(--fg);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
 }
 .pselect__tab--on {
-  background: #3a5cff;
-  border-color: #3a5cff;
-  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
 }
 
 .pselect__count {
@@ -54,8 +54,8 @@
   min-height: 56px;
   border: none;
   border-radius: 12px;
-  background: #46c86e;
-  color: #08210f;
+  background: var(--eval-green);
+  color: var(--on-choice);
   font-size: 1.15rem;
   font-weight: 700;
   cursor: pointer;
@@ -81,20 +81,20 @@
 .pselect__num-input {
   flex: 1;
   min-height: 48px;
-  border: 1px solid #3a3a42;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: #1b1b1f;
-  color: #e6e6ea;
+  background: var(--bg);
+  color: var(--fg);
   padding: 0 12px;
   font-size: 1rem;
 }
 .pselect__num-go {
   min-height: 48px;
   padding: 0 16px;
-  border: 1px solid #3a3a42;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: #26262d;
-  color: #e6e6ea;
+  background: var(--bg-2);
+  color: var(--fg);
   font-weight: 600;
   cursor: pointer;
 }
@@ -105,7 +105,7 @@
 
 .pselect__error {
   margin: 0;
-  color: #ff8a8a;
+  color: var(--danger-fg);
   font-size: 0.9rem;
   text-align: center;
 }

@@ -23,15 +23,15 @@
   min-height: 48px;
   padding: 8px 14px;
   border-radius: 12px;
-  border: 2px solid #3a3a42;
-  background: #26262d;
-  color: #e6e6ea;
+  border: 2px solid var(--border);
+  background: var(--bg-2);
+  color: var(--fg);
   cursor: pointer;
   touch-action: manipulation;
 }
 .bsetup__level--on {
-  border-color: #3a5cff;
-  background: #2a3252;
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 18%, var(--bg-2));
 }
 .bsetup__level-name {
   font-size: 1.05rem;
@@ -58,17 +58,17 @@
   flex: 1;
   min-height: 48px;
   border-radius: 12px;
-  border: 2px solid #3a3a42;
-  background: #26262d;
-  color: #e6e6ea;
+  border: 2px solid var(--border);
+  background: var(--bg-2);
+  color: var(--fg);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   touch-action: manipulation;
 }
 .bsetup__side--on {
-  border-color: #3a5cff;
-  background: #2a3252;
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 18%, var(--bg-2));
 }
 
 .bsetup__actions {
@@ -80,8 +80,8 @@
   min-height: 56px;
   border-radius: 12px;
   border: none;
-  background: #3a5cff;
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-primary);
   font-size: 1.15rem;
   font-weight: 700;
   cursor: pointer;
@@ -90,9 +90,9 @@
 .bsetup__back {
   min-height: 48px;
   border-radius: 12px;
-  border: 1px solid #3a3a42;
-  background: #26262d;
-  color: #c9c9d1;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--fg-muted);
   font-size: 0.95rem;
   cursor: pointer;
 }

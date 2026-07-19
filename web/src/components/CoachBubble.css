@@ -12,8 +12,8 @@
   width: 100%;
   padding: 6px 10px;
   border-radius: 12px;
-  background: #26262d;
-  border: 1px solid #3a3a42;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
 }
 .coachbubble__avatar {
   font-size: 1.3rem;
@@ -23,5 +23,5 @@
 .coachbubble__text {
   font-size: 0.92rem;
   font-weight: 600;
-  color: #e6e6ea;
+  color: var(--fg);
 }

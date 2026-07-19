@@ -39,9 +39,9 @@
 .menu__btn {
   position: relative;
   min-height: 56px;
-  border: 1px solid #3a3a42;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #26262d;
+  background: var(--bg-2);
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
@@ -58,8 +58,8 @@
   font-weight: 500;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #3a3a42;
-  color: #c9c9d1;
+  background: var(--border);
+  color: var(--fg-muted);
 }
 
 .demo {

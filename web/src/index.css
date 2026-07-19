@@ -1,10 +1,96 @@
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
   font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN",
     "Noto Sans JP", sans-serif;
-  --bg: #1b1b1f;
-  --fg: #e6e6ea;
-  --accent: #7aa2f7;
+
+  /* ── 第1層: Flexoki パレット定数(テーマ非依存・公式値) ── */
+  --flexoki-paper: #fffcf0;
+  --flexoki-50: #f2f0e5;
+  --flexoki-100: #e6e4d9;
+  --flexoki-150: #dad8ce;
+  --flexoki-200: #cecdc3;
+  --flexoki-300: #b7b5ac;
+  --flexoki-400: #9f9d96;
+  --flexoki-500: #878580;
+  --flexoki-600: #6f6e69;
+  --flexoki-700: #575653;
+  --flexoki-800: #403e3c;
+  --flexoki-850: #343331;
+  --flexoki-900: #282726;
+  --flexoki-950: #1c1b1a;
+  --flexoki-black: #100f0f;
+
+  --flexoki-red-600: #af3029;
+  --flexoki-red-400: #d14d41;
+  --flexoki-orange-600: #bc5215;
+  --flexoki-orange-400: #da702c;
+  --flexoki-yellow-600: #ad8301;
+  --flexoki-yellow-400: #d0a215;
+  --flexoki-green-600: #66800b;
+  --flexoki-green-400: #879a39;
+  --flexoki-cyan-600: #24837b;
+  --flexoki-cyan-400: #3aa99f;
+  --flexoki-blue-600: #205ea6;
+  --flexoki-blue-400: #4385be;
+  --flexoki-purple-600: #5e409d;
+  --flexoki-purple-400: #8b7ec8;
+  --flexoki-magenta-600: #a02f6f;
+  --flexoki-magenta-400: #ce5d97;
+
+  /* ── 第2層: 意味論トークン(ライト = デフォルト) ── */
+  --bg: var(--flexoki-paper);
+  --bg-2: var(--flexoki-50);
+  --fg: var(--flexoki-black);
+  --fg-muted: var(--flexoki-600);
+  --border: var(--flexoki-200);
+  --square-light: var(--flexoki-100);
+  --square-dark: var(--flexoki-400);
+  --choice-0: var(--flexoki-cyan-600);
+  --choice-1: var(--flexoki-magenta-600);
+  --choice-2: var(--flexoki-purple-600);
+  --on-choice: var(--flexoki-paper);
+  --eval-green: var(--flexoki-green-600);
+  --eval-yellow: var(--flexoki-yellow-600);
+  --eval-red: var(--flexoki-red-600);
+  --lastmove: var(--flexoki-yellow-600);
+  --focus: var(--flexoki-yellow-600);
+  --flash: var(--flexoki-yellow-600);
+  --primary: var(--flexoki-blue-600);
+  --on-primary: var(--flexoki-paper);
+  --danger-fg: var(--flexoki-red-600);
+  --success-fg: var(--flexoki-green-600);
+  --result-chosen: var(--flexoki-black);
+  --backdrop: rgba(16, 15, 15, 0.45);
+  --evalbar-white: var(--flexoki-paper);
+  --evalbar-black: var(--flexoki-black);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: var(--flexoki-950);
+    --bg-2: var(--flexoki-900);
+    --fg: var(--flexoki-200);
+    --fg-muted: var(--flexoki-400);
+    --border: var(--flexoki-800);
+    --square-light: var(--flexoki-300);
+    --square-dark: var(--flexoki-600);
+    --choice-0: var(--flexoki-cyan-400);
+    --choice-1: var(--flexoki-magenta-400);
+    --choice-2: var(--flexoki-purple-400);
+    --on-choice: var(--flexoki-black);
+    --eval-green: var(--flexoki-green-400);
+    --eval-yellow: var(--flexoki-yellow-400);
+    --eval-red: var(--flexoki-red-400);
+    --lastmove: var(--flexoki-yellow-400);
+    --focus: var(--flexoki-yellow-400);
+    --flash: var(--flexoki-yellow-400);
+    --primary: var(--flexoki-blue-400);
+    --on-primary: var(--flexoki-paper);
+    --danger-fg: var(--flexoki-red-400);
+    --success-fg: var(--flexoki-green-400);
+    --result-chosen: var(--flexoki-paper);
+    --backdrop: rgba(16, 15, 15, 0.55);
+  }
 }
 
 * {
