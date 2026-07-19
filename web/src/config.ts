@@ -13,6 +13,11 @@ export const POSITION_EVAL_DEPTH = 8;
 export const GREEN_MAX = 30; // 損失これ以下 → 緑(ほぼ最善)
 export const YELLOW_MAX = 150; // ここまで → 黄、超えたら → 赤
 
+// 序盤定跡手の採用しきい値。best からの損失がこれ以下なら定跡手を green 候補に採用。
+export const BOOK_MAX_LOSS = GREEN_MAX; // =30
+
+
+
 // 単スレ WASM 対策: 解析にかける movetime の上限(ms)。
 export const ANALYSIS_MOVETIME_MS = 4000;
 
