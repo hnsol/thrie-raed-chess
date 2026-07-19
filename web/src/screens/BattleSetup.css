@@ -42,6 +42,14 @@
   opacity: 0.65;
 }
 
+/* 序盤の戦略ボタン。名称が長いので name/tagline を縦積みにする。 */
+.bsetup__strat {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+}
+
 .bsetup__sides {
   display: flex;
   gap: 8px;

@@ -2,24 +2,31 @@
 import { useState } from "react";
 import { CPU_LEVELS, DEFAULT_CPU_LEVEL } from "../config";
 import type { Color } from "../lib/session";
+import { STRATEGIES, type StrategyId } from "../lib/openings";
 import "./BattleSetup.css";
 
 // UI 上の手番選択。ランダムは開始時に確定する。
 type SideChoice = "w" | "b" | "random";
 
 export interface BattleSetupProps {
-  onStart: (cpuLevelIndex: number, humanColor: Color) => void;
+  onStart: (
+    cpuLevelIndex: number,
+    humanColor: Color,
+    strategyId: StrategyId | null,
+  ) => void;
   onBack: () => void;
 }
 
 export default function BattleSetup({ onStart, onBack }: BattleSetupProps) {
   const [level, setLevel] = useState(DEFAULT_CPU_LEVEL);
   const [side, setSide] = useState<SideChoice>("random");
+  // 序盤の戦略。null は「おまかせ」(現行動作、デフォルト)。
+  const [strategyId, setStrategyId] = useState<StrategyId | null>(null);
 
   function start() {
     const humanColor: Color =
       side === "random" ? (Math.random() < 0.5 ? "w" : "b") : side;
-    onStart(level, humanColor);
+    onStart(level, humanColor, strategyId);
   }
 
   return (
@@ -71,6 +78,39 @@ export default function BattleSetup({ onStart, onBack }: BattleSetupProps) {
               aria-pressed={side === val}
             >
               {label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="bsetup__section">
+        <h2 className="bsetup__label">序盤の戦略</h2>
+        <div className="bsetup__levels">
+          <button
+            type="button"
+            className={
+              "bsetup__level bsetup__strat" +
+              (strategyId === null ? " bsetup__level--on" : "")
+            }
+            onClick={() => setStrategyId(null)}
+            aria-pressed={strategyId === null}
+          >
+            <span className="bsetup__level-name">おまかせ</span>
+            <span className="bsetup__level-sub">エンジンの最善手で選ぶ</span>
+          </button>
+          {STRATEGIES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className={
+                "bsetup__level bsetup__strat" +
+                (strategyId === s.id ? " bsetup__level--on" : "")
+              }
+              onClick={() => setStrategyId(s.id)}
+              aria-pressed={strategyId === s.id}
+            >
+              <span className="bsetup__level-name">{s.name}</span>
+              <span className="bsetup__level-sub">{s.tagline}</span>
             </button>
           ))}
         </div>

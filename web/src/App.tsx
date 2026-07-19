@@ -7,6 +7,7 @@ import Battle from "./screens/Battle";
 import { getPuzzlesByDifficulty, type Puzzle as PuzzleData } from "./lib/puzzles";
 import { defaultRng } from "./lib/rng";
 import type { Color } from "./lib/session";
+import type { StrategyId } from "./lib/openings";
 import { UciClient } from "./engine/uci-client";
 import "./App.css";
 
@@ -62,6 +63,7 @@ export default function App() {
   const [battleCfg, setBattleCfg] = useState<{
     level: number;
     humanColor: Color;
+    strategyId: StrategyId | null;
     key: number;
   } | null>(null);
 
@@ -77,10 +79,15 @@ export default function App() {
     setScreen("puzzle");
   }
 
-  function startBattle(level: number, humanColor: Color) {
+  function startBattle(
+    level: number,
+    humanColor: Color,
+    strategyId: StrategyId | null,
+  ) {
     setBattleCfg((prev) => ({
       level,
       humanColor,
+      strategyId,
       key: (prev?.key ?? 0) + 1,
     }));
     setScreen("battle");
@@ -113,6 +120,7 @@ export default function App() {
           client={getClient()}
           cpuLevelIndex={battleCfg.level}
           humanColor={battleCfg.humanColor}
+          strategyId={battleCfg.strategyId}
           onExit={() => setScreen("menu")}
         />
       </div>

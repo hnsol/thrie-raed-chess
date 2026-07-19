@@ -19,6 +19,7 @@ import {
   type RevealedChoice,
 } from "../lib/session";
 import { parseUci } from "../lib/puzzles";
+import { getStrategy, type StrategyId } from "../lib/openings";
 import { MOVEMENT_HELP } from "../lib/stats";
 import { CoachCommenter } from "../lib/coach";
 import { gameReviewText, shareOrCopy } from "../lib/review";
@@ -31,7 +32,14 @@ export interface BattleProps {
   client: UciClient;
   cpuLevelIndex: number;
   humanColor: Color;
+  strategyId: StrategyId | null; // 序盤の定跡戦略(null=おまかせ)
   onExit: () => void; // メニューへ戻る
+}
+
+// 戦略名 "まっすぐ攻める（イタリアン流）" から括弧内の短い名前 "イタリアン流" を取り出す。
+function strategyShortName(name: string): string {
+  const m = name.match(/（(.+?)）/);
+  return m ? m[1] : name;
 }
 
 // 白 POV のセンチポーンを白の優勢シェア(0..1)に変換(評価バー用)。
@@ -55,9 +63,11 @@ export default function Battle({
   client,
   cpuLevelIndex,
   humanColor,
+  strategyId,
   onExit,
 }: BattleProps) {
   const level = CPU_LEVELS[cpuLevelIndex] ?? CPU_LEVELS[1];
+  const strategy = getStrategy(strategyId);
 
   // セッションは1回だけ生成。
   const sessionRef = useRef<BattleSession | null>(null);
@@ -67,6 +77,7 @@ export default function Battle({
       humanColor,
       cpuSkill: level.skill,
       cpuDepth: level.depth,
+      strategy,
     });
   }
   const session = sessionRef.current;
@@ -206,8 +217,23 @@ export default function Battle({
       // 終局でなければ、指した手にコーチコメントを付ける(TUI と同じタイミング)。
       if (session.phase === BattlePhase.REVEALED) {
         const chosen = rev[idx];
+        // 序盤で定跡手が候補に採用された手番のみ、定跡言及用の opening を渡す。
+        // bookInfo が null(戦略なし/序盤外/非採用)の手番は従来どおり第5引数なし。
+        const opening = session.bookInfo
+          ? {
+              strategyName: session.bookInfo.strategyName,
+              openingName: session.bookInfo.openingName,
+              followedBook: chosen.isBook,
+            }
+          : undefined;
         setCoachComment(
-          coach.comment(chosen.loss, chosen.color, chosen.facts, session.board),
+          coach.comment(
+            chosen.loss,
+            chosen.color,
+            chosen.facts,
+            session.board,
+            opening,
+          ),
         );
       } else {
         setCoachComment(null);
@@ -322,7 +348,8 @@ export default function Battle({
           ← メニュー
         </button>
         <span className="battle__level">
-          CPU: {level.name}（あなた: {humanColor === "w" ? "白" : "黒"}）
+          CPU: {level.name}（あなた: {humanColor === "w" ? "白" : "黒"}
+          {strategy ? "・" + strategyShortName(strategy.name) : ""}）
         </span>
       </header>
 
@@ -445,6 +472,11 @@ export default function Battle({
                   {r.isChosen ? "（選択）" : ""}
                   {r.facts.length ? " ・ " + r.facts.join(" / ") : ""}
                 </span>
+                {r.isBook && session.bookInfo && (
+                  <span className="bchoice__book">
+                    📖 定跡: {session.bookInfo.openingName}
+                  </span>
+                )}
               </div>
             ))}
           </div>
