@@ -32,25 +32,31 @@ npm run dev
 
 ## Features
 
-- **Battle mode** — play against a CPU opponent. Choose from five difficulty levels (Beginner, Novice, Intermediate, Advanced, Strongest) at the start with `h` / `j` / `k` / `l` / `;`. On each of your turns, Stockfish proposes three candidate moves; pick one with a single key (`j` / `k` / `l`). Your choice is graded green (near-best), yellow, or red by centipawn loss, with running stats.
+- **Battle mode** — play against a CPU opponent with five difficulty levels (Beginner, Novice, Intermediate, Advanced, Strongest). On each of your turns, Stockfish proposes three candidate moves; **tap once to preview, tap again to confirm**. Your choice is graded green (near-best), yellow, or red by centipawn loss, with running stats.
+- **Opening strategies** — pick an opening plan (Italian, London, or Fianchetto style) at the start of a game, and book moves matching your plan appear among the candidates during the opening.
 - **Coach comments** — an encouraging coach reacts to every move you make: best moves get showered with praise, and even blunders are met with positive encouragement. Comments adapt to the game phase (opening / middlegame / endgame), the nature of the move (captures, checks, etc.), and winning streaks — phrased differently every time.
 - **Puzzle mode** — mate-in-2/3/4 puzzles from the Lichess puzzle database, presented as 3-choice quizzes.
-- **Game review export** — export the finished game as a PGN-based review prompt you can paste into an AI assistant.
-- Block-art chess pieces rendered right in your terminal.
+- **Game review export** — share/copy the finished game as a PGN-based review prompt you can paste into an AI assistant.
 
 ### Battle mode
 
 Play a CPU and learn the best move via 3 choices:
 
-![Battle mode](docs/images/battle-mode.png)
+<p><img src="docs/images/web-battle-mode.png" alt="Battle mode" width="320"></p>
 
 ### Puzzle mode
 
 Find the mating sequence via 3 choices:
 
-![Puzzle mode](docs/images/puzzle-mode.png)
+<p><img src="docs/images/web-puzzle-mode.png" alt="Puzzle mode" width="320"></p>
 
-## Terminal version (TUI) requirements
+## Terminal version (TUI)
+
+You can also play in a terminal (keys: `j` / `k` / `l` to pick a choice):
+
+![Terminal version](docs/images/battle-mode.png)
+
+### Requirements
 
 - Python 3.11+
 - Terminal: **92×30 or larger** recommended (smaller sizes work, but the side panel narrows and pieces fall back to compact display)
