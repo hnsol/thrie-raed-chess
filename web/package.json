@@ -7,12 +7,12 @@
     "copy-puzzles": "node scripts/copy-puzzles.mjs",
     "copy-engine": "node scripts/copy-engine.mjs",
     "postinstall": "node scripts/copy-engine.mjs",
-    "predev": "node scripts/copy-puzzles.mjs && node scripts/copy-engine.mjs",
+    "predev": "node scripts/copy-puzzles.mjs && node scripts/copy-engine.mjs && node scripts/copy-logo.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/copy-puzzles.mjs && node scripts/copy-engine.mjs",
+    "prebuild": "node scripts/copy-puzzles.mjs && node scripts/copy-engine.mjs && node scripts/copy-logo.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "pretest": "node scripts/copy-puzzles.mjs && node scripts/copy-engine.mjs",
+    "pretest": "node scripts/copy-puzzles.mjs && node scripts/copy-engine.mjs && node scripts/copy-logo.mjs",
     "test": "vitest run"
   },
   "dependencies": {

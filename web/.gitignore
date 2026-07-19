@@ -6,3 +6,4 @@ dist-ssr/
 dev-dist/
 src/data/puzzles.json
 public/engine/
+public/title-logo.png

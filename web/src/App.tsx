@@ -8,7 +8,6 @@ import { getPuzzlesByDifficulty, type Puzzle as PuzzleData } from "./lib/puzzles
 import { defaultRng } from "./lib/rng";
 import type { Color } from "./lib/session";
 import { UciClient } from "./engine/uci-client";
-import { APP_NAME } from "./config";
 import "./App.css";
 
 type Screen =
@@ -31,7 +30,7 @@ function Menu({
   return (
     <div className="app">
       <header className="app__header">
-        <h1 className="app__title">{APP_NAME}</h1>
+        <img className="app__title-logo" src={import.meta.env.BASE_URL + "title-logo.png"} alt="Thrie Raed Chess" />
         <p className="app__subtitle">3択で覚えるチェス</p>
       </header>
 

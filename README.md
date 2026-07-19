@@ -3,11 +3,30 @@
 </p>
 
 <p align="center">
-  「3択で覚えるチェス」— ターミナル（TUI）で動くチェス初心者向けトレーナー<br>
+  「3択で覚えるチェス」— チェス初心者向けトレーナー<br>
   <a href="README.en.md">English version</a>
 </p>
 
 ゼロから指し手を考えるのではなく、**3つの候補手から選ぶ**ことで最善手の感覚を身につけます。[Textual](https://textual.textualize.io/) と [python-chess](https://python-chess.readthedocs.io/) 製。
+
+## Web版（スマホ対応）
+
+**▶ https://hnsol.github.io/thrie-raed-chess/**
+
+- **インストール不要** — ブラウザで開くだけ。iOS / Android 対応
+- **PWA** — ホーム画面に追加してアプリのように起動
+- **オフライン可** — 一度読み込めばネット接続なしで遊べます
+- **エンジン内蔵** — Stockfish（WebAssembly）を同梱。別途インストール不要
+
+### ローカル開発
+
+Node.js 18+ が必要です。
+
+```sh
+cd web
+npm install
+npm run dev
+```
 
 ## 特徴
 
@@ -29,28 +48,7 @@ CPU と対局し、3択で最善手を学ぶ:
 
 ![詰めチェスモード](docs/images/puzzle-mode.png)
 
-## Web版（スマホ対応）
-
-ブラウザだけで遊べるWeb版があります（スマホ最適化のUI）:
-
-**▶ https://hnsol.github.io/thrie-raed-chess/**
-
-- **インストール不要** — ブラウザで開くだけ。iOS / Android 対応
-- **PWA** — ホーム画面に追加してアプリのように起動
-- **オフライン可** — 一度読み込めばネット接続なしで遊べます
-- **エンジン内蔵** — Stockfish（WebAssembly）を同梱。別途インストール不要
-
-### ローカル開発
-
-Node.js 18+ が必要です。
-
-```sh
-cd web
-npm install
-npm run dev
-```
-
-## 動作要件
+## ターミナル版（TUI）の動作要件
 
 - Python 3.11+
 - ターミナル: **92×30 以上**推奨（それ未満でも動作しますが、サイドパネルが狭まったり駒が簡易表示になります）

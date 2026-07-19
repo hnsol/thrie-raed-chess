@@ -14,7 +14,7 @@ export interface BattleSetupProps {
 
 export default function BattleSetup({ onStart, onBack }: BattleSetupProps) {
   const [level, setLevel] = useState(DEFAULT_CPU_LEVEL);
-  const [side, setSide] = useState<SideChoice>("w");
+  const [side, setSide] = useState<SideChoice>("random");
 
   function start() {
     const humanColor: Color =
