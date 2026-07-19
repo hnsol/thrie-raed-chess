@@ -1,4 +1,5 @@
 .board {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
@@ -10,6 +11,18 @@
   overflow: hidden;
   touch-action: manipulation;
   user-select: none;
+}
+
+/* 相手の直前手を示す矢印。盤と同じ 8x8 座標系の SVG を全面に重ね、
+   駒(z-index:1)より前面に置く。クリックは透過させる。 */
+.board__arrow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.82;
 }
 
 .cell {

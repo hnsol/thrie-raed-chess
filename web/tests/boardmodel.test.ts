@@ -6,6 +6,8 @@ import {
   pieceGlyph,
   puzzleResultModel,
   resultModel,
+  squareToXY,
+  arrowLine,
   type Choice,
   type Piece,
   type PieceLookup,
@@ -122,5 +124,39 @@ describe("pieceGlyph", () => {
     expect(pieceGlyph({ type: "p", color: "w" })).toBe("♟");
     expect(pieceGlyph({ type: "n", color: "b" })).toBe("♞");
     expect(pieceGlyph(null)).toBe("");
+  });
+});
+
+describe("squareToXY", () => {
+  it("非 flip: a8 が左上、h1 が右下(セル中心 idx+0.5)", () => {
+    expect(squareToXY("a8", false)).toEqual({ x: 0.5, y: 0.5 });
+    expect(squareToXY("h1", false)).toEqual({ x: 7.5, y: 7.5 });
+    expect(squareToXY("e4", false)).toEqual({ x: 4.5, y: 4.5 });
+  });
+
+  it("flip: 列・行とも反転(a8→右下、h1→左上)", () => {
+    expect(squareToXY("a8", true)).toEqual({ x: 7.5, y: 7.5 });
+    expect(squareToXY("h1", true)).toEqual({ x: 0.5, y: 0.5 });
+    expect(squareToXY("e4", true)).toEqual({ x: 3.5, y: 3.5 });
+  });
+});
+
+describe("arrowLine", () => {
+  it("from は升中心、to は中心より手前で止まる(垂直手)", () => {
+    const ln = arrowLine("e2", "e4", false);
+    // e2=(4.5,6.5) e4=(4.5,4.5): 上向き、始点は中心、終点は 0.32 手前。
+    expect(ln.x1).toBeCloseTo(4.5);
+    expect(ln.y1).toBeCloseTo(6.5);
+    expect(ln.x2).toBeCloseTo(4.5);
+    expect(ln.y2).toBeCloseTo(4.5 + 0.32);
+  });
+
+  it("flip で座標が反転する", () => {
+    const ln = arrowLine("e2", "e4", true);
+    // e2=(3.5,1.5) e4=(3.5,3.5): 下向き、終点は 0.32 手前。
+    expect(ln.x1).toBeCloseTo(3.5);
+    expect(ln.y1).toBeCloseTo(1.5);
+    expect(ln.x2).toBeCloseTo(3.5);
+    expect(ln.y2).toBeCloseTo(3.5 - 0.32);
   });
 });

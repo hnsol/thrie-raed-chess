@@ -90,6 +90,10 @@ export function Puzzle({ puzzle, onAnother, onBack }: PuzzleProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, finished, phase, session.focusedIdx, session.idx]);
 
+  // 盤上の矢印。解答中は直前の相手(応手)の手を矢印で示す。
+  // 終局(結果表示)は自分の最終手を puzzleResultModel で示すため矢印は出さない。
+  const arrow: Move | null = finished ? null : lastMove(session);
+
   const side = flipRef.current ? "黒番" : "白番";
 
   return (
@@ -119,7 +123,12 @@ export function Puzzle({ puzzle, onAnother, onBack }: PuzzleProps) {
           }
         }}
       >
-        <Board fen={session.board.fen()} roles={roles} flip={flipRef.current} />
+        <Board
+          fen={session.board.fen()}
+          roles={roles}
+          flip={flipRef.current}
+          arrow={arrow}
+        />
       </div>
 
       {!finished ? (

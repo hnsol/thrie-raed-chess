@@ -178,3 +178,50 @@ export function pieceGlyph(piece: Piece | null): string {
   if (piece === null) return "";
   return SOLID_GLYPHS[piece.type.toUpperCase()] ?? "";
 }
+
+// ---- 盤上矢印の座標計算(SVG オーバーレイ用の純関数) ----
+// viewBox="0 0 8 8" 上での升目中心座標を返す。file a-h→列0-7、rank 8-1→行0-7。
+// flip(後手視点)では列・行とも反転する。セル中心 = idx + 0.5。
+export function squareToXY(
+  square: Square,
+  flip: boolean,
+): { x: number; y: number } {
+  const file = square.charCodeAt(0) - 97; // 'a'->0 .. 'h'->7
+  const rank = Number(square[1]); // 1..8
+  let col = file; // a→0 .. h→7
+  let row = 8 - rank; // rank8→0 .. rank1→7
+  if (flip) {
+    col = 7 - col;
+    row = 7 - row;
+  }
+  return { x: col + 0.5, y: row + 0.5 };
+}
+
+export interface ArrowLine {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+// from 升中心 → to 升中心 の矢印線。to 側は駒に被らないよう中心より
+// 少し手前(SHORTEN)で止め、先端(marker)が中心付近に来るようにする。
+const ARROW_SHORTEN = 0.32;
+
+export function arrowLine(
+  from: Square,
+  to: Square,
+  flip: boolean,
+): ArrowLine {
+  const a = squareToXY(from, flip);
+  const b = squareToXY(to, flip);
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return {
+    x1: a.x,
+    y1: a.y,
+    x2: b.x - (dx / len) * ARROW_SHORTEN,
+    y2: b.y - (dy / len) * ARROW_SHORTEN,
+  };
+}

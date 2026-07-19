@@ -325,6 +325,28 @@ export default function Battle({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, session, session.focusedIdx, session.chosenIdx, analyzing, revealed]);
 
+  // 盤上の矢印。相手(CPU)の直前の手のみ描画する(人間の手には出さない)。
+  // roles の lastmove 黄マスと同じ手を指すが、駒が多い局面でも視認しやすい。
+  const arrow: Move | null = useMemo(() => {
+    const board = session.board;
+    if (phase === BattlePhase.HUMAN_CHOOSING) {
+      // 人間の手番=直前は CPU の手。
+      return lastMoveOf(board);
+    }
+    if (phase === BattlePhase.REVEALED) {
+      // 人間手を適用済み。その1つ前が CPU の手。
+      return nthLastMove(board, 1);
+    }
+    // CPU_THINKING / GAME_OVER: 直前が人間なら矢印なし、CPU なら直前手。
+    const humanResult =
+      session.chosenIdx !== null &&
+      session.choices.length > 0 &&
+      lastMoverRef.current === "human";
+    if (humanResult) return null;
+    return lastMoveOf(board);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, session, session.chosenIdx, analyzing, revealed]);
+
   const share = whiteShare(session.positionEvalCp);
   const summary = session.stats.summary();
   const gameOver = phase === BattlePhase.GAME_OVER;
@@ -377,6 +399,7 @@ export default function Battle({
           flip={flip}
           flashSquare={flash?.sq ?? null}
           flashKey={flash?.seq ?? 0}
+          arrow={arrow}
         />
       </div>
 

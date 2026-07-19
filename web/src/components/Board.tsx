@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Cell, CellMap, Piece, pieceGlyph } from "../lib/boardmodel";
+import { Cell, CellMap, Piece, pieceGlyph, arrowLine } from "../lib/boardmodel";
 import "./Board.css";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -74,6 +74,8 @@ export interface BoardProps {
   // 着手のフラッシュ演出。flashSquare の升を点滅させ、flashKey が変わると再トリガー。
   flashSquare?: string | null;
   flashKey?: string | number;
+  // 相手(CPU)の直前の手を盤上に矢印で示す。null なら描画しない。
+  arrow?: { from: string; to: string } | null;
 }
 
 export function Board({
@@ -82,6 +84,7 @@ export function Board({
   flip = false,
   flashSquare = null,
   flashKey = 0,
+  arrow = null,
 }: BoardProps) {
   const pieces = parseFenPieces(fen);
 
@@ -125,7 +128,45 @@ export function Board({
     }
   }
 
-  return <div className="board">{cells}</div>;
+  const arrowLn = arrow ? arrowLine(arrow.from, arrow.to, flip) : null;
+
+  return (
+    <div className="board">
+      {cells}
+      {arrowLn && (
+        <svg
+          className="board__arrow"
+          viewBox="0 0 8 8"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <defs>
+            <marker
+              id="board-arrowhead"
+              markerUnits="userSpaceOnUse"
+              markerWidth="0.5"
+              markerHeight="0.5"
+              refX="0.42"
+              refY="0.25"
+              orient="auto"
+            >
+              <polygon points="0,0 0.5,0.25 0,0.5" fill="var(--lastmove)" />
+            </marker>
+          </defs>
+          <line
+            x1={arrowLn.x1}
+            y1={arrowLn.y1}
+            x2={arrowLn.x2}
+            y2={arrowLn.y2}
+            stroke="var(--lastmove)"
+            strokeWidth={0.22}
+            strokeLinecap="round"
+            markerEnd="url(#board-arrowhead)"
+          />
+        </svg>
+      )}
+    </div>
+  );
 }
 
 export default Board;
