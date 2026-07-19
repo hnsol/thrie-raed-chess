@@ -17,6 +17,18 @@ export interface BattleSetupProps {
   onBack: () => void;
 }
 
+const SIDE_LABELS: Record<SideChoice, string> = {
+  w: "先手(白)",
+  b: "後手(黒)",
+  random: "ランダム",
+};
+
+const SIDE_DESCS: Record<SideChoice, string> = {
+  w: "先手(白)を担当",
+  b: "後手(黒)を担当",
+  random: "開始時にランダムで決定",
+};
+
 export default function BattleSetup({ onStart, onBack }: BattleSetupProps) {
   const [level, setLevel] = useState(DEFAULT_CPU_LEVEL);
   const [side, setSide] = useState<SideChoice>("random");
@@ -29,6 +41,17 @@ export default function BattleSetup({ onStart, onBack }: BattleSetupProps) {
     onStart(level, humanColor, strategyId);
   }
 
+  const lv = CPU_LEVELS[level];
+  const lvDesc = `${lv.name} — Skill ${lv.skill} / 深さ ${lv.depth}`;
+
+  const stratDesc =
+    strategyId === null
+      ? "おまかせ — エンジンの最善手で選ぶ"
+      : (() => {
+          const s = STRATEGIES.find((st) => st.id === strategyId)!;
+          return `${s.shortName} — ${s.tagline}`;
+        })();
+
   return (
     <div className="app">
       <header className="app__header">
@@ -37,11 +60,14 @@ export default function BattleSetup({ onStart, onBack }: BattleSetupProps) {
       </header>
 
       <section className="bsetup__section">
-        <h2 className="bsetup__label">CPU の強さ</h2>
-        <div className="bsetup__levels">
-          {CPU_LEVELS.map((lv, i) => (
+        <div className="bsetup__section-head">
+          <h2 className="bsetup__label">CPU の強さ</h2>
+          <span className="bsetup__desc">{lvDesc}</span>
+        </div>
+        <div className="bsetup__levels-grid">
+          {CPU_LEVELS.map((l, i) => (
             <button
-              key={lv.name}
+              key={l.name}
               type="button"
               className={
                 "bsetup__level" + (i === level ? " bsetup__level--on" : "")
@@ -49,25 +75,19 @@ export default function BattleSetup({ onStart, onBack }: BattleSetupProps) {
               onClick={() => setLevel(i)}
               aria-pressed={i === level}
             >
-              <span className="bsetup__level-name">{lv.name}</span>
-              <span className="bsetup__level-sub">
-                Skill {lv.skill} / 深さ {lv.depth}
-              </span>
+              {l.name}
             </button>
           ))}
         </div>
       </section>
 
       <section className="bsetup__section">
-        <h2 className="bsetup__label">あなたの手番</h2>
+        <div className="bsetup__section-head">
+          <h2 className="bsetup__label">あなたの手番</h2>
+          <span className="bsetup__desc">{SIDE_DESCS[side]}</span>
+        </div>
         <div className="bsetup__sides">
-          {(
-            [
-              ["w", "先手(白)"],
-              ["b", "後手(黒)"],
-              ["random", "ランダム"],
-            ] as [SideChoice, string][]
-          ).map(([val, label]) => (
+          {(["w", "b", "random"] as SideChoice[]).map((val) => (
             <button
               key={val}
               type="button"
@@ -77,51 +97,48 @@ export default function BattleSetup({ onStart, onBack }: BattleSetupProps) {
               onClick={() => setSide(val)}
               aria-pressed={side === val}
             >
-              {label}
+              {SIDE_LABELS[val]}
             </button>
           ))}
         </div>
       </section>
 
       <section className="bsetup__section">
-        <h2 className="bsetup__label">序盤の戦略</h2>
-        <div className="bsetup__levels">
+        <div className="bsetup__section-head">
+          <h2 className="bsetup__label">序盤の戦略</h2>
+          <span className="bsetup__desc">{stratDesc}</span>
+        </div>
+        <div className="bsetup__strat-grid">
           <button
             type="button"
             className={
-              "bsetup__level bsetup__strat" +
+              "bsetup__level" +
               (strategyId === null ? " bsetup__level--on" : "")
             }
             onClick={() => setStrategyId(null)}
             aria-pressed={strategyId === null}
           >
-            <span className="bsetup__level-name">おまかせ</span>
-            <span className="bsetup__level-sub">エンジンの最善手で選ぶ</span>
+            おまかせ
           </button>
           {STRATEGIES.map((s) => (
             <button
               key={s.id}
               type="button"
               className={
-                "bsetup__level bsetup__strat" +
+                "bsetup__level" +
                 (strategyId === s.id ? " bsetup__level--on" : "")
               }
               onClick={() => setStrategyId(s.id)}
               aria-pressed={strategyId === s.id}
             >
-              <span className="bsetup__level-name">{s.name}</span>
-              <span className="bsetup__level-sub">{s.tagline}</span>
+              {s.shortName}
             </button>
           ))}
         </div>
       </section>
 
       <div className="bsetup__actions">
-        <button
-          className="bsetup__start"
-          type="button"
-          onClick={start}
-        >
+        <button className="bsetup__start" type="button" onClick={start}>
           対戦開始
         </button>
         <button className="bsetup__back" type="button" onClick={onBack}>

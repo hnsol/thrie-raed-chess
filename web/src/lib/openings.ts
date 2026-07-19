@@ -14,6 +14,7 @@ export type StrategyId = "italian" | "london" | "fianchetto";
 export interface OpeningStrategy {
   id: StrategyId;
   name: string; // 選択肢の表示名
+  shortName: string; // 短縮表示名（BattleSetupグリッド用）
   tagline: string; // 一言説明
   openingName: { w: string; b: string }; // 開示時に表示する定跡名（白/黒）
   plan: { w: string[]; b: string[] }; // SAN 優先リスト（白/黒）
@@ -24,6 +25,7 @@ export const STRATEGIES: OpeningStrategy[] = [
   {
     id: "italian",
     name: "まっすぐ攻める（イタリアン流）",
+    shortName: "イタリアン流",
     tagline: "中央に出て素早く攻める",
     openingName: { w: "イタリアンゲーム", b: "イタリアン風の受け" },
     plan: {
@@ -34,6 +36,7 @@ export const STRATEGIES: OpeningStrategy[] = [
   {
     id: "london",
     name: "がっちり組む（ロンドン流）",
+    shortName: "ロンドン流",
     tagline: "堅い陣形でじっくり戦う",
     openingName: { w: "ロンドンシステム", b: "堅陣ディフェンス" },
     plan: {
@@ -44,6 +47,7 @@ export const STRATEGIES: OpeningStrategy[] = [
   {
     id: "fianchetto",
     name: "じっくり構える（フィアンケット流）",
+    shortName: "フィアンケット流",
     tagline: "斜めから盤面ににらみを利かせる",
     openingName: { w: "イングリッシュオープニング", b: "キングズインディアン風" },
     plan: {

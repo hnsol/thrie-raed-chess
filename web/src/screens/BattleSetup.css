@@ -1,67 +1,78 @@
 .bsetup__section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+
+/* セクション見出し行: ラベル + 選択中項目の説明 */
+.bsetup__section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 1.4em; /* レイアウトシフト防止のため固定高 */
 }
 .bsetup__label {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
   opacity: 0.85;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bsetup__desc {
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.bsetup__levels {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* CPU 強さ: 3列×2行グリッド */
+.bsetup__levels-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
 }
+
+/* 序盤の戦略: 2列×2行グリッド */
+.bsetup__strat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+/* 共通ボタン（強さ・戦略グリッド用） */
 .bsetup__level {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  min-height: 48px;
-  padding: 8px 14px;
-  border-radius: 12px;
+  min-height: 44px;
+  padding: 6px 4px;
+  border-radius: 10px;
   border: 2px solid var(--border);
   background: var(--bg-2);
   color: var(--fg);
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
+  text-align: center;
 }
 .bsetup__level--on {
   border-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 18%, var(--bg-2));
 }
-.bsetup__level-name {
-  font-size: 1.05rem;
-  font-weight: 700;
-}
-.bsetup__level-sub {
-  font-size: 0.75rem;
-  opacity: 0.65;
-}
 
-/* 序盤の戦略ボタン。名称が長いので name/tagline を縦積みにする。 */
-.bsetup__strat {
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 2px;
-}
-
+/* あなたの手番: 3列1行 */
 .bsetup__sides {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 .bsetup__side {
   flex: 1;
-  min-height: 48px;
-  border-radius: 12px;
+  min-height: 44px;
+  border-radius: 10px;
   border: 2px solid var(--border);
   background: var(--bg-2);
   color: var(--fg);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   touch-action: manipulation;
@@ -77,18 +88,18 @@
   gap: 10px;
 }
 .bsetup__start {
-  min-height: 56px;
+  min-height: 52px;
   border-radius: 12px;
   border: none;
   background: var(--primary);
   color: var(--on-primary);
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
 }
 .bsetup__back {
-  min-height: 48px;
+  min-height: 44px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--bg-2);
