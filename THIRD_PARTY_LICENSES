@@ -47,6 +47,11 @@ was created by Colin M.L. Burnett and is distributed under the GNU General
 Public License, version 2 or later (GPLv2+):
 https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 Original artwork: https://en.wikipedia.org/wiki/User:Cburnett/GFDL_images/Chess
+
+The app logo / PWA icons (web/public/title-logo.svg, web/public/favicon.svg,
+web/assets/icon*.svg and the PNGs generated from them) contain a knight
+silhouette derived from the cburnett knight (wN.svg) and are likewise
+distributed under GPLv2+.
 ================================================================================
 Stockfish / Stockfish.js — chess engine (web app)
 https://github.com/official-stockfish/Stockfish

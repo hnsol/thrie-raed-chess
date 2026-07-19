@@ -31,7 +31,8 @@ function Menu({
   return (
     <div className="app">
       <header className="app__header">
-        <img className="app__title-logo" src={import.meta.env.BASE_URL + "title-logo.png"} alt="Thrie Raed Chess" />
+        <img className="app__title-logo" src={import.meta.env.BASE_URL + "title-logo.svg"} alt="" />
+        <h1 className="app__title">Thrie Raed Chess</h1>
         <p className="app__subtitle">3択で覚えるチェス</p>
       </header>
 
