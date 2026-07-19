@@ -4,6 +4,18 @@
   gap: 12px;
 }
 
+/* パズル盤も対戦と同式に統一(svh 基準で iOS でも不安定にならない)。
+   C=290px はパズルの縦固定チローム合計(実測・対戦より小さめ):
+     app padding(16 + 32)             = 48
+     puzzle gap ×3(12px)              = 36
+     head(戻る/メタ 行)               = 26
+     prompt(min-height 1.4em ほか)    = 28
+     3択(44×3=132 + gap10×2=20)       = 152
+                                  合計 = 290 */
+.puzzle .board {
+  width: min(100vw - 20px, calc(100svh - 290px), 520px);
+}
+
 .puzzle__head {
   display: flex;
   align-items: center;
@@ -44,20 +56,23 @@
   flex-direction: column;
   gap: 10px;
 }
+/* 横1行レイアウト: SAN 左・操作案内右。 */
 .pchoice {
   width: 100%;
-  min-height: 56px;
+  min-height: 44px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 2px;
-  padding: 6px 16px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 6px 14px;
   border-radius: 12px;
   border: 2px solid transparent;
   color: var(--on-choice);
   cursor: pointer;
   touch-action: manipulation;
+  text-align: left;
 }
 /* Board.css の choice-0/1/2 と同色系。対戦(.bchoice--0/1/2)と統一:
    シアン / マゼンタ / 青紫。 */
@@ -82,6 +97,7 @@
 .pchoice__sub {
   font-size: 0.72rem;
   opacity: 0.75;
+  text-align: right;
 }
 
 .puzzle__result {

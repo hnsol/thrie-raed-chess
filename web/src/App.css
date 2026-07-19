@@ -11,7 +11,7 @@
 .app--battle {
   max-width: 520px;
   height: 100dvh;
-  padding: 8px 10px;
+  padding: 6px 10px;
   gap: 0;
   overflow: hidden;
 }

@@ -492,9 +492,6 @@ export default function Battle({
               </div>
             ))}
           </div>
-          <button className="battle__primary" type="button" onClick={handleNext}>
-            次へ
-          </button>
         </div>
       ) : (
         <div className="battle__choices">
@@ -522,20 +519,33 @@ export default function Battle({
 
       {!gameOver && !error && !initializing && (
         <div className="battle__foot">
-          <button
-            className="battle__stats-toggle"
-            type="button"
-            onClick={() => setShowStats((v) => !v)}
-          >
-            統計・情報 {showStats ? "▲" : "▼"}
-          </button>
-          <button
-            className="battle__resign"
-            type="button"
-            onClick={handleResign}
-          >
-            投了
-          </button>
+          {phase === BattlePhase.REVEALED ? (
+            // REVEALED 中は全幅「次へ」に差し替え(統計・投了は次の手番で復帰)。
+            <button
+              className="battle__primary"
+              type="button"
+              onClick={handleNext}
+            >
+              次へ
+            </button>
+          ) : (
+            <>
+              <button
+                className="battle__stats-toggle"
+                type="button"
+                onClick={() => setShowStats((v) => !v)}
+              >
+                統計・情報 {showStats ? "▲" : "▼"}
+              </button>
+              <button
+                className="battle__resign"
+                type="button"
+                onClick={handleResign}
+              >
+                投了
+              </button>
+            </>
+          )}
         </div>
       )}
       </div>

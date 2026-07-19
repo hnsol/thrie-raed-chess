@@ -1,12 +1,24 @@
 .battle {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   height: 100%;
   min-height: 0;
   /* 盤サイズは全フェーズ共通の固定値。開示時に吹き出し/次へが増えても
-     盤・評価バー・吹き出しの位置とサイズが一切動かないよう1回だけ決める。 */
-  --board-size: min(100vw - 20px, 42vh);
+     盤・評価バー・吹き出しの位置とサイズが一切動かないよう1回だけ決める。
+     svh は Safari のバー状態やスクロールで変化しないため、盤サイズ固定を
+     保ちつつ 42vh より大きく取れる(iPhone 15 Pro でほぼ幅律速に)。
+     C=318px は盤以外の縦固定チローム合計(実測):
+       app--battle padding(6+6)          = 12
+       .battle gap ×4(6px)               = 24
+       head(back/level 行)               = 26
+       evalbar(12 + border 1×2)          = 14
+       coach 吹き出し                     = 40
+       lower(3択 44×3 + gap6×2=144,
+             gap6, フット/次へ 52)= 202
+                                      合計 = 318
+     デスクトップでは 100svh が大きいため 520px を上限に足す。 */
+  --board-size: min(100vw - 20px, calc(100svh - 318px), 520px);
   /* 盤より上(ヘッダ/評価バー/盤/吹き出し)は非スクロール領域。
      スクロールは下部の .battle__lower 内でのみ発生させ、実機の動的
      ビューポート変化や内容の増減でも盤が1pxも動かないようにする。 */
@@ -19,7 +31,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   overflow-y: auto;
 }
 
@@ -53,8 +65,8 @@
 /* 評価バー(白 POV) */
 .battle__evalbar {
   position: relative;
-  height: 18px;
-  border-radius: 9px;
+  height: 12px;
+  border-radius: 6px;
   overflow: hidden;
   background: var(--evalbar-black); /* 黒側 */
   border: 1px solid var(--border);
@@ -110,17 +122,19 @@
 .battle__choices {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
+/* 横1行レイアウト: SAN 左・補足(操作案内/開示メタ)右。長い場合は折返し許容。 */
 .bchoice {
   width: 100%;
-  min-height: 52px;
+  min-height: 44px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 2px;
-  padding: 6px 16px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 6px 14px;
   border-radius: 12px;
   border: 2px solid transparent;
   color: var(--on-choice);
@@ -151,14 +165,17 @@
   font-size: 0.75rem;
   opacity: 0.8;
   min-height: 1em;
+  text-align: right;
 }
 .bchoice__hint {
   font-size: 0.7rem;
   opacity: 0.65;
+  text-align: right;
 }
 .bchoice__meta {
   font-size: 0.78rem;
   opacity: 0.9;
+  text-align: right;
 }
 /* 開示時の定跡バッジ。meta 行に同居し行を増やさない(次へボタンの押し出し防止)。
    選択前は一切出さない。 */
@@ -202,7 +219,7 @@
 .battle__revealed {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 /* CPU 思考中 */
@@ -309,6 +326,10 @@
   /* 3択の下・画面最下部にフットを固定してファーストビュー内に収める。 */
   margin-top: auto;
   padding-top: 4px;
+}
+/* REVEALED 中はフット行を全幅「次へ」に差し替える(統計・投了は一時非表示)。 */
+.battle__foot .battle__primary {
+  flex: 1;
 }
 .battle__stats-toggle {
   flex: 1;
