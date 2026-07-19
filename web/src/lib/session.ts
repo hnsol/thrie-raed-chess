@@ -175,6 +175,11 @@ export class BattleSession {
     }
   }
 
+  // フォーカスを全解除する(盤タップ等によるキャンセル用)。
+  clearFocus(): void {
+    this.focusedIdx = null;
+  }
+
   // idx の手を確定。全候補の開示情報(RevealedChoice のリスト)を返す。
   applyChoice(idx: number): RevealedChoice[] {
     const revealed: RevealedChoice[] = this.choices.map((c, i) => ({
@@ -295,6 +300,11 @@ export class PuzzleSession {
     ) {
       this.focusedIdx = idx;
     }
+  }
+
+  // フォーカスを全解除する(盤タップ等によるキャンセル用)。
+  clearFocus(): void {
+    this.focusedIdx = null;
   }
 
   abandon(): void {

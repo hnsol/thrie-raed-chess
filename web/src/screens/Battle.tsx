@@ -362,13 +362,23 @@ export default function Battle({
         <span className="battle__evaltext">{session.positionEval}</span>
       </div>
 
-      <Board
-        fen={session.board.fen()}
-        roles={roles}
-        flip={flip}
-        flashSquare={flash?.sq ?? null}
-        flashKey={flash?.seq ?? 0}
-      />
+      <div
+        style={{ display: "contents" }}
+        onClick={() => {
+          if (phase === BattlePhase.HUMAN_CHOOSING && !analyzing && session.focusedIdx !== null) {
+            session.clearFocus();
+            rerender();
+          }
+        }}
+      >
+        <Board
+          fen={session.board.fen()}
+          roles={roles}
+          flip={flip}
+          flashSquare={flash?.sq ?? null}
+          flashKey={flash?.seq ?? 0}
+        />
+      </div>
 
       {!gameOver && !error && <CoachBubble comment={coachComment} />}
 

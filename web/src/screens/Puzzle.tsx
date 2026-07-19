@@ -110,7 +110,17 @@ export function Puzzle({ puzzle, onAnother, onBack }: PuzzleProps) {
           : `手順 ${session.step}/${puzzle.mate_in}  ${side}  詰ませる手は？`}
       </p>
 
-      <Board fen={session.board.fen()} roles={roles} flip={flipRef.current} />
+      <div
+        style={{ display: "contents" }}
+        onClick={() => {
+          if (phase === PuzzlePhase.CHOOSING && session.focusedIdx !== null) {
+            session.clearFocus();
+            rerender();
+          }
+        }}
+      >
+        <Board fen={session.board.fen()} roles={roles} flip={flipRef.current} />
+      </div>
 
       {!finished ? (
         <div className="puzzle__choices">

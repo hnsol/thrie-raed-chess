@@ -99,6 +99,14 @@ describe("PuzzleSession", () => {
     s.abandon();
     expect(s.phase).toBe(PuzzlePhase.ABORTED);
   });
+
+  it("clearFocus: focus(1) → clearFocus() → focusedIdx === null", () => {
+    const s = new PuzzleSession(MATE_IN_1, mulberry32(1));
+    s.focus(1);
+    expect(s.focusedIdx).toBe(1);
+    s.clearFocus();
+    expect(s.focusedIdx).toBeNull();
+  });
 });
 
 // ── BattleSession ─────────────────────────────────────────────
@@ -203,6 +211,17 @@ describe("BattleSession", () => {
     s.resign();
     expect(s.result).toBe("1-0");
     expect(s.termination).toBe("Black resigned");
+  });
+
+  it("clearFocus: focus(1) → clearFocus() → focusedIdx === null", async () => {
+    const fen = "4k3/8/8/8/8/8/8/4K2R w K - 0 1";
+    const s = new BattleSession({ board: new Chess(fen), rng: mulberry32(7) });
+    const lines = [pv(1, 300, "h1h8"), pv(2, 280, "e1e2"), pv(3, 150, "h1h2")];
+    await s.prepareChoices(fakeClient({ lines }));
+    s.focus(1);
+    expect(s.focusedIdx).toBe(1);
+    s.clearFocus();
+    expect(s.focusedIdx).toBeNull();
   });
 });
 
