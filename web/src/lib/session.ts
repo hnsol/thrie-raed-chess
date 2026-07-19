@@ -22,6 +22,11 @@ import {
   type MoveColor,
 } from "./evaluation";
 import { BattleStats } from "./stats";
+import {
+  applyBookPreference,
+  suggestPlanMove,
+  type OpeningStrategy,
+} from "./openings";
 import type { UciClient } from "../engine/uci-client";
 import { CPU_LEVELS } from "../config";
 import { defaultRng, type Rng } from "./rng";
@@ -45,6 +50,7 @@ export interface RevealedChoice {
   color: MoveColor;
   facts: string[];
   isChosen: boolean;
+  isBook: boolean;
 }
 
 // 終局理由を1行の日本語メッセージにする(announce_result 相当)。
@@ -79,6 +85,7 @@ export interface BattleOptions {
   cpuSkill?: number;
   cpuDepth?: number;
   rng?: Rng;
+  strategy?: OpeningStrategy | null;
 }
 
 export class BattleSession {
@@ -87,10 +94,14 @@ export class BattleSession {
   humanColor: Color;
   cpuSkill: number; // 相手 CPU の強さ 0(最弱)〜20(最強)
   cpuDepth: number; // 相手 CPU の読みの深さ
+  strategy: OpeningStrategy | null; // 序盤の定跡戦略(web 独自機能)。null は現行動作。
   phase: BattlePhase = BattlePhase.HUMAN_CHOOSING;
   choices: EvaluatedMove[] = [];
   positionEval = "互角";
   positionEvalCp = 0; // 評価バー用: 白 POV のセンチポーン(mate は ±10000 スケール)
+  // 定跡手を green 候補に採用したときの開示情報。非採用/戦略なし/序盤外は null。
+  bookInfo: { uci: string; san: string; openingName: string; strategyName: string } | null =
+    null;
   focusedIdx: number | null = null;
   chosenIdx: number | null = null;
   result = "*";
@@ -104,6 +115,7 @@ export class BattleSession {
     // 既定は CPU_LEVELS の初級相当。
     this.cpuSkill = opts.cpuSkill ?? CPU_LEVELS[1].skill;
     this.cpuDepth = opts.cpuDepth ?? CPU_LEVELS[1].depth;
+    this.strategy = opts.strategy ?? null;
     this.rng = opts.rng ?? defaultRng;
   }
 
@@ -113,8 +125,9 @@ export class BattleSession {
     onProgress?: (depth: number) => void,
   ): Promise<EvaluatedMove[]> {
     const evaluated = await evaluateAllMoves(client, this.board, onProgress);
-    this.choices = pickThree(evaluated, this.rng);
-    // 追加解析はせず best 手(手番側 POV)のスコアを白 POV に変換して表示。
+
+    // (a) 評価バーは常に「真の best(evaluated[0])」から先に計算する。定跡差し替えの
+    //     影響を受けないよう、この順序を必ず守る。
     if (evaluated.length > 0) {
       const turn = this.board.turn();
       this.positionEval = formatPositionEvalFromPov(evaluated[0].scorePov, turn);
@@ -123,6 +136,28 @@ export class BattleSession {
       this.positionEval = "互角";
       this.positionEvalCp = 0;
     }
+
+    // (b) 戦略があり、序盤で定跡手が提案でき、その loss がしきい値以下なら green 候補に
+    //     採用する(applyBookPreference が該当手を配列先頭へ移動)。採用時のみ bookInfo。
+    let forChoices = evaluated;
+    this.bookInfo = null;
+    if (this.strategy !== null) {
+      const bookUci = suggestPlanMove(this.board, this.strategy, this.humanColor);
+      const { evaluated: reordered, adopted } = applyBookPreference(evaluated, bookUci);
+      if (adopted && bookUci !== null) {
+        forChoices = reordered;
+        const book = reordered[0];
+        this.bookInfo = {
+          uci: bookUci,
+          san: book.san,
+          openingName: this.strategy.openingName[this.humanColor],
+          strategyName: this.strategy.name,
+        };
+      }
+    }
+
+    // (c) pickThree には差し替え後の配列を渡す(採用時は先頭 = 定跡手が best 扱い)。
+    this.choices = pickThree(forChoices, this.rng);
     this.phase = BattlePhase.HUMAN_CHOOSING;
     this.focusedIdx = null;
     this.chosenIdx = null;
@@ -149,6 +184,7 @@ export class BattleSession {
       color: c.color,
       facts: moveFacts(this.board, c.uci),
       isChosen: i === idx,
+      isBook: c.uci === this.bookInfo?.uci,
     }));
     const chosen = this.choices[idx];
     this.board.move(parseUci(chosen.uci));

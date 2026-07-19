@@ -113,6 +113,47 @@ describe("CoachCommenter.comment", () => {
     expect(seen).toBe(true);
   });
 
+  // ── web 独自拡張: 序盤の定跡戦略への言及 ──────────────────────
+  it("_BOOK_FOLLOW: 定跡どおりの好手で定跡名が埋め込まれる", () => {
+    // rng を常に 0 に固定 → opening ブロックの 50% 判定を必ず通過。
+    const coach = new CoachCommenter(() => 0);
+    const board = new Chess();
+    const text = coach.comment(10, "green", [], board, {
+      strategyName: "まっすぐ攻める（イタリアン流）",
+      openingName: "イタリアンゲーム",
+      followedBook: true,
+    });
+    expect(text).toContain("イタリアンゲーム");
+  });
+
+  it("_BOOK_DEVIATE_OK: 定跡外の好手で独自路線コメントが出る", () => {
+    const coach = new CoachCommenter(() => 0);
+    const board = new Chess();
+    const text = coach.comment(10, "green", [], board, {
+      strategyName: "まっすぐ攻める（イタリアン流）",
+      openingName: "イタリアンゲーム",
+      followedBook: false,
+    });
+    const deviate = ["定跡とは違うけど良い手！", "独自路線もアリ！", "その手も立派な選択！"];
+    expect(deviate.some((d) => text.includes(d))).toBe(true);
+  });
+
+  it("opening 引数省略時は既存出力と完全一致(後方互換)", () => {
+    const board = new Chess();
+    const cases: [number, "green" | "yellow" | "red"][] = [
+      [0, "green"], [20, "green"], [60, "yellow"], [250, "red"],
+    ];
+    for (let seed = 0; seed < 30; seed++) {
+      const a = new CoachCommenter(mulberry32(seed));
+      const b = new CoachCommenter(mulberry32(seed));
+      for (const [loss, color] of cases) {
+        const withUndef = a.comment(loss, color, [], board, undefined);
+        const omitted = b.comment(loss, color, [], board);
+        expect(withUndef).toBe(omitted);
+      }
+    }
+  });
+
   it("悪手時にタダ取られ警告 fact が現れうる", () => {
     const board = new Chess();
     let seen = false;

@@ -123,6 +123,25 @@ const _FACT_BAD: Record<string, string[]> = {
 const _STREAK_BODY = ["止まらない！", "波に乗ってる！", "絶好調！", "この勢いだ！",
   "手が付けられない！", "ノリノリだね！"];
 
+// ── web 独自拡張(序盤の定跡戦略) ────────────────────────────────────────
+// 以下 2 テーブルは Python 版 coach.py には存在しない web 独自の追加。
+// 選んだ定跡どおりの手を指したとき/定跡を外れて良手を指したときに言及する。
+
+// 定跡どおりの好手(name = 定跡名を埋め込むテンプレート関数)。
+const _BOOK_FOLLOW: ((name: string) => string)[] = [
+  (name) => `定跡どおり！${name}の形だ！`,
+  (name) => `${name}、いい駒組み！`,
+  (name) => `お手本の${name}！`,
+  (name) => `${name}の理想形に一歩前進！`,
+];
+
+// 定跡とは違うが良い手。
+const _BOOK_DEVIATE_OK: string[] = [
+  "定跡とは違うけど良い手！",
+  "独自路線もアリ！",
+  "その手も立派な選択！",
+];
+
 // 手ごとに褒め/励ましコメントを生成する。
 export class CoachCommenter {
   private rng: Rng;
@@ -155,6 +174,8 @@ export class CoachCommenter {
     color: "green" | "yellow" | "red",
     facts: string[],
     board: Chess,
+    // web 独自拡張。序盤の定跡戦略に応じたコメントを差し込む(省略時は現行動作)。
+    opening?: { strategyName: string; openingName: string; followedBook: boolean },
   ): string {
     const tier = tierOf(loss);
     const isGreen = loss <= GREEN_MAX;
@@ -180,6 +201,18 @@ export class CoachCommenter {
       if (good.length && this.rng() < 0.5) {
         const f = this.choice(good);
         body = this.choice(_FACT_GOOD[f]);
+      }
+    }
+
+    // web 独自拡張: 序盤の定跡戦略への言及(緑系の好手時に 50% で差し替え)。
+    // opening 未指定なら発火せず現行動作と完全一致。
+    if (body === null && isGreen && opening !== undefined) {
+      if (opening.followedBook && this.rng() < 0.5) {
+        // openingName 埋め込み後の文字列で履歴回避 pick() を通す。
+        const pool = _BOOK_FOLLOW.map((f) => f(opening.openingName));
+        body = this.pick(pool, this.recentBody);
+      } else if (!opening.followedBook && this.rng() < 0.5) {
+        body = this.pick(_BOOK_DEVIATE_OK, this.recentBody);
       }
     }
 

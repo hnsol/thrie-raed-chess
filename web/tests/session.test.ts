@@ -7,6 +7,7 @@ import {
   BattlePhase,
 } from "../src/lib/session";
 import { mulberry32 } from "../src/lib/rng";
+import { getStrategy } from "../src/lib/openings";
 import type { Puzzle } from "../src/lib/puzzles";
 import type { PvLine, UciClient } from "../src/engine/uci-client";
 
@@ -202,5 +203,98 @@ describe("BattleSession", () => {
     s.resign();
     expect(s.result).toBe("1-0");
     expect(s.termination).toBe("Black resigned");
+  });
+});
+
+// ── 序盤の定跡戦略(web 独自機能) ──────────────────────────────────
+describe("BattleSession 定跡戦略", () => {
+  const italian = getStrategy("italian")!;
+
+  // 初期局面(白番)。イタリアン流の定跡手は e2e4。
+  // best は d2d4(cp50)、e2e4 は cp30(loss 20 <= 30)。
+  const bookLines: PvLine[] = [
+    pv(1, 50, "d2d4"), // 真の best
+    pv(2, 30, "e2e4"), // 定跡手・loss 20 -> green
+    pv(3, -100, "a2a3"),
+  ];
+
+  it("定跡手が僅差(loss<=30)なら choices に含まれ bookInfo が立つ", async () => {
+    const s = new BattleSession({
+      board: new Chess(),
+      strategy: italian,
+      rng: mulberry32(7),
+    });
+    await s.prepareChoices(fakeClient({ lines: bookLines }));
+    expect(s.bookInfo).not.toBeNull();
+    expect(s.bookInfo!.uci).toBe("e2e4");
+    expect(s.bookInfo!.san).toBe("e4");
+    expect(s.bookInfo!.openingName).toBe("イタリアンゲーム");
+    expect(s.bookInfo!.strategyName).toBe(italian.name);
+    expect(s.choices.some((c) => c.uci === "e2e4")).toBe(true);
+  });
+
+  it("評価バーは真の best 由来のまま(定跡差し替えの影響を受けない)", async () => {
+    const s = new BattleSession({
+      board: new Chess(),
+      strategy: italian,
+      rng: mulberry32(7),
+    });
+    await s.prepareChoices(fakeClient({ lines: bookLines }));
+    // 真の best は d2d4(白 POV cp50)。差し替えても評価バーは 50 のまま。
+    expect(s.positionEvalCp).toBe(50);
+  });
+
+  it("定跡手が loss>30 なら不採用・bookInfo null で通常 best", async () => {
+    const s = new BattleSession({
+      board: new Chess(),
+      strategy: italian,
+      rng: mulberry32(7),
+    });
+    // e2e4 cp -30(loss 80 > 30)。best は d2d4。
+    const lines: PvLine[] = [
+      pv(1, 50, "d2d4"),
+      pv(2, -30, "e2e4"),
+      pv(3, -100, "a2a3"),
+    ];
+    const choices = await s.prepareChoices(fakeClient({ lines }));
+    expect(s.bookInfo).toBeNull();
+    expect(choices[0].uci).toBe("d2d4"); // 通常 best
+    expect(s.positionEvalCp).toBe(50);
+  });
+
+  it("戦略ありでも中盤局面(序盤外)では bookInfo null", async () => {
+    // moveNumber 11 の局面 = 中盤。suggestPlanMove は phase で null を返す。
+    const fen =
+      "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 11";
+    const s = new BattleSession({
+      board: new Chess(fen),
+      strategy: italian,
+      rng: mulberry32(3),
+    });
+    const lines: PvLine[] = [pv(1, 40, "f1c4"), pv(2, 20, "d2d4")];
+    await s.prepareChoices(fakeClient({ lines }));
+    expect(s.bookInfo).toBeNull();
+  });
+
+  it("戦略なしなら bookInfo null(現行動作)", async () => {
+    const s = new BattleSession({ board: new Chess(), rng: mulberry32(7) });
+    await s.prepareChoices(fakeClient({ lines: bookLines }));
+    expect(s.bookInfo).toBeNull();
+  });
+
+  it("applyChoice で定跡手の revealed[].isBook が立つ", async () => {
+    const s = new BattleSession({
+      board: new Chess(),
+      strategy: italian,
+      rng: mulberry32(7),
+    });
+    await s.prepareChoices(fakeClient({ lines: bookLines }));
+    const idx = s.choices.findIndex((c) => c.uci === "e2e4");
+    const revealed = s.applyChoice(idx);
+    expect(revealed[idx].isBook).toBe(true);
+    // 定跡手以外は isBook false。
+    revealed.forEach((r) => {
+      if (r.uci !== "e2e4") expect(r.isBook).toBe(false);
+    });
   });
 });
